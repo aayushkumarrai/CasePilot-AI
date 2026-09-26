@@ -1,10 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Inter, Raleway } from 'next/font/google'
 import './globals.css'
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const raleway = Raleway({ subsets: ['latin'], variable: '--font-raleway' })
+import { SessionProvider } from '@/components/session-provider'
 
 export const metadata: Metadata = {
   title: 'CasePilot AI — Evidence-first case preparation',
@@ -44,8 +41,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${raleway.variable} antialiased`}>
-        {children}
+      <body className="antialiased">
+        <SessionProvider>{children}</SessionProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

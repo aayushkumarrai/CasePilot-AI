@@ -3,8 +3,10 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { IconArrowRight, IconCheck, IconSparkles, IconUserCircle } from '@tabler/icons-react'
+import { useSession } from '@/components/session-provider'
 
 export function PublicNav() {
+  const { session, isLoading } = useSession()
   return (
     <header className="casepilot-nav-surface border-t-[3px] border-[#374151]">
       <nav className="mx-auto flex min-h-[82px] max-w-[1180px] items-center justify-between gap-4 px-5 sm:px-8">
@@ -12,13 +14,18 @@ export function PublicNav() {
           <span className="grid size-9 place-items-center rounded-xl bg-[#111111] text-white"><IconSparkles className="size-[17px]" /></span>
           <span><span className="block font-brand text-[18px] font-bold tracking-[-.03em] text-[#111111]">CasePilot <span className="text-[#2563EB]">AI</span></span><span className="block text-[10px] font-semibold uppercase tracking-[.18em] text-[#64748B]">AI workroom</span></span>
         </Link>
-        <div className="flex items-center gap-2 sm:gap-3"><Link href="/signin" className="rounded-xl px-3 py-2 text-sm font-semibold text-[#525252] hover:bg-white hover:text-[#111111]">Sign in</Link><Link href="/signup" className="inline-flex min-h-10 items-center rounded-xl bg-[#111111] px-4 text-sm font-semibold text-white hover:bg-[#2563EB]">Get started</Link></div>
+        <div className="flex items-center gap-2 sm:gap-3">{!isLoading && session ? <><Link href="/dashboard" className="rounded-xl px-3 py-2 text-sm font-semibold text-[#525252] hover:bg-white hover:text-[#111111]">Dashboard</Link><Link href="/profile" className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#111111] px-4 text-sm font-semibold text-white hover:bg-[#2563EB]"><IconUserCircle className="size-4" />Profile</Link></> : <><Link href="/signin" className="rounded-xl px-3 py-2 text-sm font-semibold text-[#525252] hover:bg-white hover:text-[#111111]">Sign in</Link><Link href="/signup" className="inline-flex min-h-10 items-center rounded-xl bg-[#111111] px-4 text-sm font-semibold text-white hover:bg-[#2563EB]">Get started</Link></>}</div>
       </nav>
     </header>
   )
 }
 
 export function LandingPage() {
+  const { session, isLoading } = useSession()
+  const primaryHref = !isLoading && session ? '/dashboard' : '/signup'
+  const secondaryHref = !isLoading && session ? '/profile' : '/signin'
+  const primaryLabel = !isLoading && session ? 'Open dashboard' : 'Create your workspace'
+  const secondaryLabel = !isLoading && session ? 'View profile' : 'View demo workspace'
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111111]"><PublicNav /><main>
       <section className="relative isolate overflow-hidden border-b border-[#D9C8B8] bg-[#F6F0E9]">
@@ -26,7 +33,7 @@ export function LandingPage() {
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(250,247,243,.88)_0%,rgba(250,247,243,.78)_43%,rgba(250,247,243,.54)_72%,rgba(250,247,243,.38)_100%)]" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[#F7F1E9]/25 mix-blend-screen" />
         <div className="relative mx-auto grid max-w-[1180px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:py-28">
-          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1D4ED8]">Evidence-first case preparation</p><h1 className="mt-5 max-w-3xl font-brand text-5xl font-bold leading-[1.04] tracking-[-.055em] text-[#172033] sm:text-7xl">Turn case material into a <span className="text-[#1D4ED8]">clear next step.</span></h1><p className="mt-6 max-w-xl text-lg leading-8 text-[#334155]">CasePilot brings documents, timelines, conflicts, and review tasks into one source-linked workspace for legal teams.</p><div className="mt-8 flex flex-wrap gap-3"><Link href="/signup" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#111827] px-5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(17,24,39,.18)] hover:bg-[#1D4ED8]">Create your workspace <IconArrowRight data-icon="inline-end" /></Link><Link href="/signin" className="inline-flex min-h-12 items-center rounded-xl border border-[#BFC7D4] bg-white/90 px-5 text-sm font-semibold text-[#111827] shadow-sm hover:bg-white">View demo workspace</Link></div></div>
+          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1D4ED8]">Evidence-first case preparation</p><h1 className="mt-5 max-w-3xl font-brand text-5xl font-bold leading-[1.04] tracking-[-.055em] text-[#172033] sm:text-7xl">Turn case material into a <span className="text-[#1D4ED8]">clear next step.</span></h1><p className="mt-6 max-w-xl text-lg leading-8 text-[#334155]">CasePilot brings documents, timelines, conflicts, and review tasks into one source-linked workspace for legal teams.</p><div className="mt-8 flex flex-wrap gap-3"><Link href={primaryHref} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#111827] px-5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(17,24,39,.18)] hover:bg-[#1D4ED8]">{primaryLabel} <IconArrowRight data-icon="inline-end" /></Link><Link href={secondaryHref} className="inline-flex min-h-12 items-center rounded-xl border border-[#BFC7D4] bg-white/90 px-5 text-sm font-semibold text-[#111827] shadow-sm hover:bg-white">{secondaryLabel}</Link></div></div>
           <div className="rounded-[28px] border border-white/75 bg-white/95 p-5 shadow-[0_22px_60px_rgba(15,23,42,.18)] backdrop-blur-sm sm:p-7"><div className="flex items-center justify-between border-b border-[#EEF1F5] pb-5"><div><p className="font-mono text-xs font-bold text-[#525252]">PROP-001</p><h2 className="mt-1 font-brand text-xl font-bold">Rao v Mehta</h2></div><span className="rounded-full border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1 text-xs font-semibold text-[#92400E]">Review</span></div><div className="mt-6 flex flex-col gap-3"><div className="rounded-xl bg-[#F8FBFF] p-4"><p className="text-xs font-bold uppercase tracking-[.1em] text-[#2563EB]">AI summary</p><p className="mt-2 text-sm leading-6 text-[#262626]">Payment is supported by the uploaded records. Possession remains for lawyer review.</p></div>{['Payment receipt verified','Timeline ready for review','2 potential conflicts flagged'].map((item) => <div key={item} className="flex items-center gap-3 rounded-xl border border-[#EEF1F5] bg-white p-3 text-sm font-semibold text-[#262626]"><IconCheck className="size-4 text-[#2563EB]" />{item}</div>)}</div></div>
         </div>
       </section>

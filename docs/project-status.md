@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-26  
 **Current phase:** Stage 3 — Analysis and Review Outputs
-**Demo readiness:** At Risk — Stage 2 document intake and owner isolation are verified; frontend integration, AI analysis, and deployment remain.
+**Demo readiness:** At Risk — Stage 1–2 frontend implementation is ready for live integration review; AI analysis, later-stage APIs, deployment, and end-to-end verification remain.
 
 ## Status definitions
 
@@ -26,13 +26,13 @@
 | FastAPI Stage 1 identity, cases, and dashboard APIs | Sharad | Verified | Real Postman lifecycle and two-user RLS verification passed: create, duplicate conflict, list, get, update, validation, archive, restore, dashboard, missing-token rejection, and cross-user `404`. | `pytest`, live readiness, Postman lifecycle, two-user RLS / 2026-09-26 |
 | Backend Stage 1 handoff | Sharad | Verified | OpenAPI, Postman collection, environment template, frontend auth/schema handover, and deployment guidance are ready for integration. | `docs/api-handover.md`, `postman/` / 2026-09-26 |
 | Postman API and security verification package | Sharad | Verified | Collection exercised against local FastAPI and real Supabase, including missing-token `401` and cross-user `404` | `postman/`, `docs/postman-testing.md` / 2026-09-26 |
-| Dashboard and case shell | Aayush | In Progress | Next.js UI imported with dummy data; replace dashboard and case workspace data with frozen API responses | Next.js build / 2026-09-26 |
-| Auth, case creation, uploads, document reader | Akshata | In Progress | Supabase email/password sign-up and sign-in are wired and verified; implement Stage 1 case creation UI, then Stage 2 documents | Next.js build, local auth, Postman JWT / 2026-09-26 |
-| Overview, timeline, issues, tasks, AI Chat | Aayush | Not Started | API endpoints and mock/API types | — |
+| Dashboard and case shell | Aayush | Ready for Review | Replaced mock dashboard and case lifecycle UI with token-authenticated Stage 1 API integration, protected routes, archive/restore, and error/empty/loading states. Requires live Supabase/FastAPI manual verification. | `pnpm --dir apps/web build` / 2026-09-26 |
+| Auth, case creation, uploads, document reader | Akshata | Ready for Review | Implemented session handling, sign-out/401 behavior, case creation, signed direct uploads, document polling/retry, temporary PDF reading, and DOCX/TXT passage reader. Requires live Supabase/FastAPI manual verification. | `pnpm --dir apps/web build`; API `pytest` 14 passed / 2026-09-26 |
+| Overview, timeline, issues, tasks, AI Chat | Aayush | Blocked | Stage 3–5 FastAPI endpoints and frozen request/response schemas are absent; current API handover declares these routes planned only. | Backend route audit / 2026-09-26 |
 | Fictional document packet | Team | Not Started | Write six fictional documents | — |
 | Integration and automated tests | Team | Not Started | Backend and frontend feature completion | — |
 | Backend Stage 2 document intake | Sharad | Verified | Private bucket, owner-only RLS, signed upload/read flow, registration, background extraction, retry, and stable passages verified for PDF, DOCX, TXT, unsupported files, failure/retry, and two-user isolation. | `pytest` 14 passed; migration `20260926113000`; live Postman verification / 2026-09-26 |
-| Lawyer-provided context | Planned | Stage 2 reserves the upload-area textarea; Stage 3 saves, snapshots, and sends it as a separately labeled non-evidence assertion during explicit analysis. | Documentation updated / 2026-09-26 |
+| Lawyer-provided context | Ready for Review (Stage 2 UI) | Local 4,000-character non-evidence textarea is implemented beside uploads. Persistence and analysis submission remain blocked on the Stage 3 API. | `pnpm --dir apps/web build` / 2026-09-26 |
 | Demo rehearsal and final checklist | Team | Not Started | Verified end-to-end flow | — |
 
 ## Environment tracker
@@ -52,6 +52,8 @@
 | Blocker | Owner | Impact | Resolution |
 | --- | --- | --- | --- |
 | No fictional source documents | Team | Blocks realistic end-to-end analysis and rehearsal | Create the six-document property dispute packet. |
+| Stage 3–5 API contract and implementation are absent | Sharad | Blocks functional frontend analysis, review workspace, task lifecycle, citation navigation, and chat; the documented routes currently return `404`. | Implement and freeze the Stage 3–5 OpenAPI schemas/endpoints, then provide a configured integration environment. |
+| No local frontend environment or running API | Team | Blocks documented manual frontend verification and every `Verified` status update. | Create `apps/web/.env.local`, run the FastAPI service, and use two test users against the configured Supabase project. |
 
 ## Update rule
 

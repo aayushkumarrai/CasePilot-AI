@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 
 import { PublicNav } from '@/components/casepilot-public'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
+import { useSession } from '@/components/session-provider'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -19,6 +20,7 @@ function messageFrom(error: unknown): string {
 
 export function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter()
+  const { session, isLoading: isSessionLoading } = useSession()
   const isSignUp = mode === 'signup'
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -26,6 +28,10 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!isSessionLoading && session) router.replace('/dashboard')
+  }, [isSessionLoading, router, session])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -49,9 +55,6 @@ export function AuthPage({ mode }: AuthPageProps) {
       }
 
       if (result.data.session) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.info('CasePilot Supabase access token:', result.data.session.access_token)
-        }
         router.replace('/dashboard')
         return
       }

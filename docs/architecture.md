@@ -17,12 +17,12 @@ flowchart LR
 
 | Component | Responsibility |
 | --- | --- |
-| Next.js app | Authentication screens, dashboard, case workspace, upload experience, document reader, task review, chat, and API state. |
+| Next.js app | Authentication screens, dashboard, dedicated upload flow, document reader, read-only review workspace, citation navigation, and API state. |
 | FastAPI | Verifies the user token, issues signed upload URLs, parses documents, calls AI, validates citations, writes analysis outputs, and exposes REST endpoints. |
 | Supabase Auth | Email/password identity and session JWTs. |
 | Supabase Postgres | Case data, extracted evidence, analysis results, tasks, chat history, and activity history. |
 | Supabase Storage | Private original documents; browser access occurs through temporary signed URLs only. |
-| Groq API | Server-only structured extraction, case analysis, summaries, and chat answer generation through `openai/gpt-oss-20b`. |
+| Groq API | Server-only structured extraction and case analysis through `openai/gpt-oss-20b`. Case chat is a later stage. |
 
 ## Processing lifecycle
 
@@ -35,7 +35,7 @@ flowchart LR
 7. FastAPI sends passage-labeled evidence and separately labeled lawyer-provided context to the AI with a JSON-only output contract.
 8. FastAPI rejects any AI citation whose document ID, passage ID, or quoted text does not match stored evidence.
 9. FastAPI stores valid fields, summaries, events, findings, tasks, and activity events.
-10. Frontend polls analysis status and refreshes each view when status reaches `review` or `ready`.
+10. Frontend polls analysis status and refreshes review views once the run reaches `completed`; the case status becomes `review`.
 
 ## Data model
 
@@ -43,7 +43,7 @@ flowchart LR
 | --- | --- |
 | `profiles` | Supabase user profile. |
 | `cases` | Owner, Case ID, case name, and preparation status. Stage 3 adds current lawyer-provided context. |
-| `documents` | File metadata, private storage path, extraction status, and safe error message. Stage 3 adds AI summary. |
+| `documents` | File metadata, private storage path, extraction status, and safe error message. Document summaries are stored per analysis run. |
 | `document_passages` | Stable evidence units used by every citation. |
 | `case_fields` | Pending/confirmed/rejected extracted details and citations. |
 | `analysis_runs` | Stage 3 processing history, errors, and immutable lawyer-context snapshot used by that run. |
@@ -51,8 +51,8 @@ flowchart LR
 | `analysis_citations` | Normalized output-to-passage citation links; case-summary citations attach directly to an analysis run, while other citations attach to their run-scoped output row. Document metadata is derived through the cited passage. |
 | `timeline_events` | Cited chronological events. |
 | `findings` | Cited conflicts and gaps. |
-| `tasks` | AI/manual task and status. |
-| `chat_messages` | Case-scoped conversation and citations. |
+| `tasks` | Run-scoped AI-proposed tasks; manual tasks and workflow mutations are Stage 4. |
+| `chat_messages` | Planned Stage 5 case-scoped conversation and citations. |
 | `activity_events` | Immutable history of AI and user actions. |
 
 ## Security rules
@@ -72,3 +72,8 @@ flowchart LR
 - Deploy `apps/web` to Vercel with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_API_BASE_URL`.
 - Deploy FastAPI to Railway with Supabase credentials, Groq credentials, and `ALLOWED_ORIGINS` set to the Vercel URL.
 - Run Supabase migrations before deploying the API.
+
+
+## Current delivery status
+
+The current implementation covers the full Stage 3 read path: direct private upload, background extraction, explicit analysis, Groq structured output, evidence/citation validation, immutable persistence, polling, and source-linked review views. The Upload route owns context and analysis submission. The Documents route owns private preview and source navigation. Field/task mutations and chat are intentionally not present yet.

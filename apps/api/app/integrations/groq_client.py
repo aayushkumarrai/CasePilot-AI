@@ -52,7 +52,8 @@ Use unknown rather than guessing names, dates, amounts, or legal meaning. Propos
 Lawyer-provided context is not document evidence: never cite it, convert it into a fact, timeline event, payment claim, or conflict resolution.
 Every factual output, including the case summary, must have at least one citation. Every citation must use a supplied passage_id and target an output ref in this response. Case-summary citations must use target_type \"case_summary\" and target_ref \"case_summary\".
 
-Return exactly this JSON object shape. Use empty arrays when an output category has no evidence-backed items:
+Return exactly this JSON object shape. When evidence explicitly names a party and role (for example Buyer, Seller, Landlord, Tenant, Plaintiff, Defendant), include that grounded party. When evidence explicitly states material payment, possession, property, date, or agreement facts, include grounded case fields. Use empty arrays only when the uploaded evidence lacks that category.
+Use empty arrays when an output category has no evidence-backed items:
 {
   \"case_summary\": \"string\",
   \"document_summaries\": [{\"ref\": \"doc_summary_1\", \"document_id\": \"UUID from evidence\", \"summary\": \"string\"}],
@@ -81,7 +82,7 @@ class GroqClient:
         if self._owns_client:
             await self._client.aclose()
 
-    async def analyze_case(self, prompt: AnalysisPrompt) -> AnalysisResult:
+    async def analyze_case(self, prompt: AnalysisPrompt, corrective_instruction: str | None = None) -> AnalysisResult:
         if not self.settings.groq_is_configured:
             raise GroqConfigurationError()
         payload = {
@@ -93,7 +94,7 @@ class GroqClient:
             "reasoning_format": "hidden",
             "response_format": {"type": "json_object"},
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM_PROMPT + ("\n\n" + corrective_instruction if corrective_instruction else "")},
                 {"role": "user", "content": self._user_prompt(prompt)},
             ],
         }

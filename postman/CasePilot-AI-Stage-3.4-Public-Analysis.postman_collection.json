@@ -1,0 +1,122 @@
+{
+  "info": {
+    "name": "CasePilot AI \u2014 Stage 3.4 Public Analysis",
+    "description": "Maintainer verification for the public FastAPI analysis command and polling routes. Select the local environment, set Supabase credentials plus a case_uuid for an active case with a ready document, run requests in order, and repeat the final request while analysis is queued or processing. Groq remains server-only; this collection never contains a Groq key.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 \u2014 Supabase Sign In",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{supabase_url}}/auth/v1/token?grant_type=password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+              "pm.environment.set('access_token', body.access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 \u2014 Start Analysis",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/analysis",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lawyer_context\": \"Focus on payment and possession records. This is lawyer-provided context, not evidence.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 202', () => pm.response.to.have.status(202));",
+              "const body = pm.response.json();",
+              "pm.expect(body.status).to.eql('queued');",
+              "pm.expect(body).to.not.have.property('lawyer_context_snapshot');",
+              "pm.environment.set('analysis_run_uuid', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 \u2014 Poll Analysis Status (repeat while active)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/analysis"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.expect(body).to.have.property('has_completed_outputs');",
+              "pm.expect(body).to.not.have.property('lawyer_context');",
+              "if (body.run && ['queued', 'processing'].includes(body.run.status)) { console.log('Repeat request 03 in 2\u20133 seconds. Current status: ' + body.run.status); }",
+              "if (body.run) { pm.environment.set('analysis_run_uuid', body.run.id); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

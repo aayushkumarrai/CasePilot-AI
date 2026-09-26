@@ -15,9 +15,9 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 3. Upload PDF, DOCX, or TXT documents.
 4. Optionally add lawyer-provided context beside the upload controls.
 5. Select **Analyze case** after at least one document is ready.
-6. Review generated outputs and supporting passages.
-7. Confirm, edit, or reject pending case details.
-8. Act on suggested tasks and ask case-specific questions in AI Chat.
+6. Review generated outputs and supporting passages in read-only Stage 3 views.
+7. Use citations to inspect the referenced private document or extracted passage.
+8. Continue to Stage 4 for field/task actions and Stage 5 for case chat.
 
 ## Delivered Stage 2 evidence foundation
 
@@ -40,8 +40,8 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 | Context boundary | Lawyer-provided context cannot support factual claims, receive document citations, resolve conflicts, or become a confirmed extracted detail without supporting uploaded evidence. |
 | Gaps | Use the phrase “not found in uploaded material.” Do not claim the missing record does not exist. |
 | Conflicts | Show competing accounts and their sources. Do not select one as true. |
-| Tasks | Allow user-created and AI-created tasks. Track proposed, approved, done, or rejected state. |
-| Chat | Persist messages by case. Evidence answers have citations; general preparation guidance is labeled as such. |
+| Tasks | Stage 3 displays source-linked AI-proposed tasks as read-only. User-created tasks and status changes are Stage 4. |
+| Chat | Planned for Stage 5. It will persist messages by case and label evidence/general-guidance answers. |
 | Failure | Mark an unreadable/unsupported document and continue with documents that are usable. |
 
 ## Out of scope for version one
@@ -54,4 +54,9 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 
 ## Acceptance criteria
 
-The prototype is ready when a lawyer can complete the fictional property-dispute demo from upload through source inspection, task approval, and cited case chat without manual database changes.
+Stage 3 is ready for review when a lawyer can complete the fictional property-dispute flow from case creation and upload through analysis, source inspection, and read-only review output without manual database changes. Task approval and cited case chat are later-stage acceptance criteria.
+
+
+## Current Stage 3 experience
+
+After case creation, the lawyer lands on a dedicated Upload page. It contains the document picker, optional lawyer-provided context, readiness state, and the only Analyze Case action. Once analysis completes, the application opens Overview. PDF and DOCX originals render through short-lived private preview URLs; TXT and DOCX citations use stable extracted passages.

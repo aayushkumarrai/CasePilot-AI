@@ -60,3 +60,27 @@ export async function uploadToSignedUrl(file: File, uploadUrl: string, contentTy
   const response = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': contentType }, body: file })
   if (!response.ok) throw new Error('The file upload failed. Please try that file again.')
 }
+
+export type Citation = { document_id: string; document_name: string; passage_id: string; passage_label: string; page_number: number | null; quote: string }
+export type AnalysisRun = { id: string; status: 'queued' | 'processing' | 'completed' | 'failed'; started_at: string | null; completed_at: string | null; error_message: string | null }
+export type AnalysisStatus = { run: AnalysisRun | null; has_completed_outputs: boolean }
+export type DocumentSummary = { id: string; document_id: string; document_name: string; summary: string; citations: Citation[] }
+export type ReviewField = { id: string; field_key: string; label: string; value: string; status: 'pending' | 'confirmed' | 'rejected'; citations: Citation[] }
+export type ReviewParty = { id: string; name: string; role: string; status: 'pending' | 'confirmed' | 'rejected'; citations: Citation[] }
+export type TimelineEvent = { id: string; event_date_text: string; date_confidence: 'exact' | 'month' | 'year' | 'unknown'; title: string; description: string; citations: Citation[] }
+export type Finding = { id: string; kind: 'conflict' | 'gap'; title: string; description: string; citations: Citation[] }
+export type ReviewTask = { id: string; finding_id: string | null; title: string; description: string; status: string; citations: Citation[] }
+export type ReviewActivity = { id: string; action: string; actor_type: string; details: Record<string, unknown>; created_at: string }
+export type OverviewResponse = { case: CaseRecord; analysis_run: { id: string; completed_at: string | null } | null; lawyer_context: string | null; case_summary: string | null; case_summary_citations: Citation[]; document_summaries: DocumentSummary[]; fields: { pending: ReviewField[]; confirmed: ReviewField[]; rejected: ReviewField[] }; parties: ReviewParty[]; latest_issues: Finding[]; pending_tasks: ReviewTask[]; counts: { document_summaries: number; pending_fields: number; confirmed_fields: number; rejected_fields: number; parties: number; issues: number; pending_tasks: number } }
+
+export const analysisApi = {
+  start: (caseId: string, payload: { lawyer_context: string | null }) => apiFetch<AnalysisRun>(`/cases/${caseId}/analysis`, { method: 'POST', body: JSON.stringify(payload) }),
+  status: (caseId: string) => apiFetch<AnalysisStatus>(`/cases/${caseId}/analysis`),
+  overview: (caseId: string) => apiFetch<OverviewResponse>(`/cases/${caseId}/overview`),
+  timeline: (caseId: string) => apiFetch<TimelineEvent[]>(`/cases/${caseId}/timeline`),
+  issues: (caseId: string) => apiFetch<Finding[]>(`/cases/${caseId}/issues`),
+  tasks: (caseId: string) => apiFetch<ReviewTask[]>(`/cases/${caseId}/tasks`),
+  activity: (caseId: string) => apiFetch<ReviewActivity[]>(`/cases/${caseId}/activity`),
+}
+
+export const evidenceHref = (caseId: string, citation: Citation) => `/cases/${caseId}/documents?document=${citation.document_id}&passage=${citation.passage_id}`

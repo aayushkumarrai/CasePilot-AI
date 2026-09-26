@@ -254,3 +254,15 @@ The full fictional packet produces reviewable, cited results in the UI, and ever
 6. Substage 3.6 — frontend integration and demo verification.
 
 Do not begin a substage until its predecessor exit check passes. Update [Project Status](project-status.md) whenever a substage moves to In Progress, Ready for Review, or Verified.
+
+
+## 3.5 — Persisted review read APIs
+
+Implemented read-only FastAPI routes for overview, timeline, issues, tasks, and activity. They select the latest completed run only, resolve normalized citations to stored document passages, and return explicit empty states before a completion. Lawyer-provided context is returned separately from evidence. Field and task mutations remain Stage 4.
+
+
+## Implementation status — 2026-09-27
+
+Substages 3.1–3.6 are verified. The final QA covered the complete browser workflow, review-route security/empty states, source navigation, failed-rerun preservation, and dashboard metrics. The implemented browser flow is: Create Case → Upload → document readiness → Analyze Case → polling → Overview. It includes private PDF/DOCX preview, stable passage navigation for TXT/DOCX, separate lawyer context, evidence-linked review tabs, and dashboard counts derived from latest completed runs.
+
+Stage 3 deliberately ends with read-only review data. Confirm/edit/reject fields, task changes, manual tasks, and chat do not exist until later stages.

@@ -241,3 +241,14 @@ This document is the team’s working order for the hackathon. Complete each sta
 3. Mark work Ready for Review only after a developer has tested it locally.
 4. Mark work Verified only after the owner completes the relevant checklist item.
 5. Do not start a later stage if its required source data or API contract is still blocked.
+
+## Stage 3.6 completion work
+
+Connect the browser only to FastAPI analysis and review routes, including analysis start/polling, overview, timeline, issues, tasks, and activity. The browser never reads analysis tables or invokes Supabase lifecycle RPCs. Citation links use the Documents route with stable document and passage query parameters. Stage 3.6 also aligns dashboard task/issue metrics with latest completed analysis output. Field/task mutations and chat remain Stage 4 and Stage 5 work.
+
+
+## Stage 3 completion record — 2026-09-27
+
+Stage 3 is feature-complete locally. The backend accepts an explicit analysis command, runs Groq server-side in a background task, validates all citations against stored passages, persists immutable run-scoped outputs, and exposes polling plus read-only review APIs. The frontend now uses those FastAPI APIs end-to-end: case creation opens a dedicated Upload page; analysis completion opens Overview; citations open the appropriate private document reader; and PDF, DOCX, and TXT evidence can be inspected in-app.
+
+Stage 3 final QA passed on 2026-09-27, including the browser journey, source navigation, rerun preservation, review-route ownership/empty states, and dashboard metrics. Stage 4 is the next implementation stage.

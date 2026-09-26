@@ -37,7 +37,7 @@
 | DOC-05 | Parse PDF, DOCX, and TXT | Produces ordered stable passages; PDF passages retain page number and all content blocks are at most 1,500 characters. |
 | DOC-06 | Parse empty, scanned, malformed, or non-UTF-8 material | Document becomes `failed` with a safe error; unrelated documents still process. |
 | DOC-07 | Read a ready PDF | Detail has a temporary `read_url`; no passage content is returned. |
-| DOC-08 | Read a ready DOCX/TXT | Detail includes ordered passages with labels and IDs. |
+| DOC-08 | Read a ready DOCX/TXT | Detail includes ordered stable passages; ready DOCX also includes a temporary private read URL for in-app preview. |
 | DOC-09 | Retry a failed supported document | Returns `202`, clears/replaces old passages during processing, and can reach `ready`. Ready and unsupported documents return `409`. |
 | DOC-10 | Use User B token for User A document/list/retry/storage object | Every API/Storage access is denied or obscured as `404`; User B cannot access the private object. |
 
@@ -79,6 +79,17 @@
 | EVD-07 | Valid mixed output is transformed for the completion RPC | Only grounded outputs/citations remain; case-summary citations map to `analysis_run_id`. |
 | EVD-08 | Lawyer context is supplied | It appears only in the prompt’s non-evidence section and is never a citation source. |
 
+## Stage 3.4 public analysis tests
+
+| ID | Scenario | Expected result |
+| --- | --- | --- |
+| CMD-01 | Start analysis for an owned active case with ready evidence | Returns `202` with a queued safe run response; background work reaches a terminal run state. |
+| CMD-02 | Poll before a run and while a run is active | Returns `200` with `run: null` before analysis; polling exposes only safe run metadata. |
+| CMD-03 | Start with whitespace context, oversized context, no ready evidence, unowned case, archived case, or an active run | Normalizes blank context to `null`; returns `422`, `404`, or `409` as applicable without creating an invalid run. |
+| CMD-04 | Groq or grounding failure | New run becomes `failed` with a safe message. A prior completed run remains available and keeps the case in review. |
+| CMD-05 | Successful mocked provider response | Validated outputs persist through the lifecycle RPC and the case becomes review. |
+| CMD-06 | Public responses | Never include lawyer context, prompts, raw provider payloads, or provider secrets. |
+
 ## Frontend tests
 
 | ID | Scenario | Expected result |
@@ -101,13 +112,25 @@
 4. Enter lawyer-provided context: “The buyer says possession was never handed over. Focus on payment and key-handover records.”
 5. Select Analyze Case and wait for `review` state.
 6. Confirm the saved context remains visibly separate from document evidence.
-7. Confirm one pending party/detail field and edit another.
+7. Confirm pending details and key parties are displayed as source-linked, read-only review output.
 8. Open the possession conflict and inspect both cited sources.
 9. Confirm the missing handover acknowledgment is presented as absent only from uploaded material.
-10. Approve and complete the suggested task.
-11. Ask a case-specific AI question and inspect its citation.
-12. Ask a general-preparation question and confirm its label.
+10. Open the proposed task and its citations.
+
+Field editing, task approval/completion, and case chat are Stage 4/5 acceptance cases and are not part of the Stage 3 end-to-end run.
 
 ## Exit rule
 
 Mark a workflow Verified only after its automated test passes, the manual verification item passes, and the evidence is linked in `project-status.md`.
+
+## Stage 3.5 persisted review reads
+
+Verify the overview, timeline, issues, tasks, and activity routes with a completed Stage 3.4 analysis. Confirm latest-completed-run selection survives a later failed or processing rerun; citation responses resolve to the expected document name, passage label, page number, quote, and stable passage ID; timeline dates sort exact/month/year before unknown text; and lawyer-provided context remains visually and semantically separate from cited evidence. Verify `401` without a bearer token and `404` for an unowned or archived case on every review route.
+
+## Stage 3.6 frontend integration
+
+Verify in a browser: a ready document enables Analyze Case; context is sent only on analysis start; queued and processing states poll every 2.5 seconds; completed output refreshes all review tabs; a failed rerun keeps earlier output visible with a retry warning; citations open the selected document and highlight extracted-text passages; PDFs show the evidence-focus fallback; and dashboard task/issue metrics match latest completed outputs.
+
+## Upload route, previews, and extraction correction
+
+Verify Create Case routes to Upload; ready documents enable explicit analysis; completion routes to Overview; ready PDFs render through PDF.js; ready DOCX files render sanitized Mammoth HTML; expired preview URLs can be refreshed; and a property-dispute rerun returns citation-grounded Rao/Mehta parties and payment/possession fields. Confirm an unavailable corrective Groq call preserves the first grounded result.

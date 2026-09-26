@@ -14,9 +14,10 @@ CasePilot supports document organization and preparation. It does not make legal
 - Upload up to 50 PDF, DOCX, or TXT documents, each up to 50 MB.
 - Generate a case summary, pending extracted details, key parties, document summaries, timeline, issues, and tasks after the user selects **Analyze case**.
 - Review documents inside the application and inspect cited source passages.
-- Confirm, edit, or reject extracted case details.
-- Create, edit, approve, reject, and complete tasks.
-- Hold a persisted case-specific AI chat, with citations for evidence-based answers.
+- Read source-linked pending extracted details, parties, timelines, issues, and proposed tasks.
+- Inspect PDFs, DOCX files, and extracted TXT passages inside the application.
+
+Field review actions, task workflow changes, and case chat are planned for later stages.
 
 ## Stack
 
@@ -29,7 +30,11 @@ CasePilot supports document organization and preparation. It does not make legal
 
 ## Current implementation
 
-Stages 1 and 2 are verified with real Supabase Auth, Postgres RLS, and private Storage. Stage 3.1 analysis storage/lifecycle and Stage 3.2 Groq structured-output validation are also verified. Stage 3.3 evidence assembly and citation validation are implemented locally and await the linked Supabase migration and live fixture verification. The working backend includes authentication, dashboard and case lifecycle APIs, signed direct uploads for PDF/DOCX/TXT, background text extraction, stable evidence passages, temporary PDF read URLs, unsupported-file visibility, retries, and owner isolation. Public analysis-run APIs begin in Stage 3.4.
+Stages 1–3 are feature-complete locally. A signed-in lawyer can create and archive cases, upload private PDF/DOCX/TXT evidence, read documents in the app, add optional lawyer-provided context, explicitly start Groq-backed analysis, and review source-linked summaries, fields, parties, timelines, issues, proposed tasks, and activity.
+
+The browser uses FastAPI for all case, document, analysis, and review data; it never reads Supabase analysis tables or calls lifecycle RPCs directly. AI outputs are retained per completed run, and every displayed factual output is grounded in a stored document passage. A corrective Groq pass can fill clearly evidenced missing parties or core fields without treating lawyer context as evidence.
+
+Stage 4 will add lawyer field-review and task workflow mutations. Stage 5 will add persisted evidence-grounded case chat. Stage 6 covers full end-to-end regression, deployment, and demo rehearsal.
 
 ## Documentation
 

@@ -1,67 +1,66 @@
 # Project Status
 
 **Last updated:** 2026-09-27
-**Current phase:** Stage 3 — Analysis and Review Outputs
-**Demo readiness:** At Risk — Stage 1–2 frontend implementation is ready for live integration review; AI analysis, later-stage APIs, deployment, and end-to-end verification remain.
+**Current phase:** Stage 3 verified — ready to begin Stage 4 lawyer workflow
+**Demo readiness:** At Risk — Stages 1–3 are verified; deployment, the final fictional packet, Stage 4 review actions, and rehearsal remain.
 
 ## Status definitions
 
 | Status | Meaning |
 | --- | --- |
-| Not Started | No implementation or verification begun. |
-| In Progress | Work is actively underway. |
-| Blocked | Cannot proceed without a dependency or decision. |
-| Ready for Review | Implementation is complete and needs integration/QA. |
-| Verified | Automated and manual checks passed; evidence is recorded. |
+| Not Started | No implementation has begun. |
+| In Progress | Work is active. |
+| Ready for Review | Implementation is complete and needs final QA or integration evidence. |
+| Verified | Automated and manual checks passed and evidence is recorded. |
 
 ## Delivery board
 
-| Work item | Owner | Status | Dependency / next action | Verified by / date |
-| --- | --- | --- | --- | --- |
-| Product, architecture, frontend and API handover docs | Sharad | Verified | API contract frozen for Stage 1 | Team / 2026-09-26 |
-| Project status, test plan, checklist, demo script | Sharad | Verified | Stage 1 evidence recorded; later-stage checks remain open | Team / 2026-09-26 |
-| Stage-by-stage implementation plan | Sharad | Verified | Stages aligned to the Next.js/FastAPI monorepo | Team / 2026-09-26 |
-| Frontend and FastAPI foundation | Sharad | Verified | Directory structure, health check, environment examples, and local setup guide added | 2026-09-26 |
-| Supabase Stage 1 schema, profile trigger, and RLS | Sharad | Verified | Migration applied, remote lint passed, and two-user RLS verification returned `404` for a non-owner | `20260926092442`, lint, two-user Postman / 2026-09-26 |
-| FastAPI Stage 1 identity, cases, and dashboard APIs | Sharad | Verified | Real Postman lifecycle and two-user RLS verification passed: create, duplicate conflict, list, get, update, validation, archive, restore, dashboard, missing-token rejection, and cross-user `404`. | `pytest`, live readiness, Postman lifecycle, two-user RLS / 2026-09-26 |
-| Backend Stage 1 handoff | Sharad | Verified | OpenAPI, Postman collection, environment template, frontend auth/schema handover, and deployment guidance are ready for integration. | `docs/api-handover.md`, `postman/` / 2026-09-26 |
-| Postman API and security verification package | Sharad | Verified | Collection exercised against local FastAPI and real Supabase, including missing-token `401` and cross-user `404` | `postman/`, `docs/postman-testing.md` / 2026-09-26 |
-| Dashboard and case shell | Aayush | Ready for Review | Replaced mock dashboard and case lifecycle UI with token-authenticated Stage 1 API integration, protected routes, archive/restore, and error/empty/loading states. Requires live Supabase/FastAPI manual verification. | `pnpm --dir apps/web build` / 2026-09-26 |
-| Auth, case creation, uploads, document reader | Akshata | Ready for Review | Implemented session handling, sign-out/401 behavior, case creation, signed direct uploads, document polling/retry, temporary PDF reading, and DOCX/TXT passage reader. Requires live Supabase/FastAPI manual verification. | `pnpm --dir apps/web build`; API `pytest` 14 passed / 2026-09-26 |
-| Overview, timeline, issues, tasks, AI Chat | Aayush | Blocked | Stage 3–5 FastAPI endpoints and frozen request/response schemas are absent; current API handover declares these routes planned only. | Backend route audit / 2026-09-26 |
-| Fictional document packet | Team | Not Started | Write six fictional documents | — |
-| Integration and automated tests | Team | Not Started | Backend and frontend feature completion | — |
-| Backend Stage 2 document intake | Sharad | Verified | Private bucket, owner-only RLS, signed upload/read flow, registration, background extraction, retry, and stable passages verified for PDF, DOCX, TXT, unsupported files, failure/retry, and two-user isolation. | `pytest` 14 passed; migration `20260926113000`; live Postman verification / 2026-09-26 |
-| Backend Stage 3 analysis and review outputs | Sharad | In Progress | Stages 3.1 and 3.2 are verified. Stage 3.3 migrations and automated checks pass; the final authenticated fixture remains. | Schema lint; backend tests / 2026-09-27 |
-| Stage 3.3 — evidence assembly and citation gate | Sharad | Ready for Review | Ready-only deterministic assembly, 180,000-character boundary, quote normalization, output filtering, case-summary citation mapping, remote migrations, and linked schema lint pass. Run the authenticated fixture next. | `pytest` 30 passed; `supabase db lint --linked` / 2026-09-27 |
-| Stage 3.2 — Groq client and structured output | Sharad | Verified | Groq `openai/gpt-oss-20b`, JSON-object mode, typed output contracts, retry boundary, mock tests, and live synthetic smoke output are verified. | `tests/test_groq_client.py`; smoke output / 2026-09-27 |
-| Stage 3.1 — analysis schema, RLS, and lifecycle | Sharad | Verified | Run-scoped immutable outputs, normalized citations, context snapshots, lifecycle RPCs, fixture completion, and two-user RLS are verified. | Remote migration/lint and Postman verification / 2026-09-26 |
-| Lawyer-provided context — Stage 2 UI | Ready for Review | Local 4,000-character non-evidence textarea is implemented beside uploads. Persistence and analysis submission remain blocked on the Stage 3 API. | `pnpm --dir apps/web build` / 2026-09-26 |
-| Lawyer-provided context — Stage 3 persistence | Planned | Stage 2 reserves the upload-area textarea; Stage 3 saves, snapshots, and sends it as a separately labeled non-evidence assertion during explicit analysis. | Documentation updated / 2026-09-26 |
-| Demo rehearsal and final checklist | Team | Not Started | Verified end-to-end flow | — |
+| Work item | Status | Current evidence / next action |
+| --- | --- | --- |
+| Stage 0 project setup and frozen base contract | Verified | Repository, local apps, Supabase project, environments, and health checks are established. |
+| Stage 1 authentication, cases, dashboard, archive/restore | Verified | Real Supabase RLS and Postman lifecycle checks passed. |
+| Stage 2 private document intake | Verified | PDF/DOCX/TXT signed upload, extraction, stable passages, retries, unsupported state, and owner isolation passed. |
+| Stage 3.1 analysis schema and lifecycle | Verified | Immutable run-scoped output, context snapshots, citation storage, lifecycle RPCs, and RLS passed migration/lint/live checks. |
+| Stage 3.2 Groq structured-output client | Verified | `openai/gpt-oss-20b` mocked tests and live smoke request passed. |
+| Stage 3.3 evidence assembly and citation gate | Verified | Ready-only evidence, 180k limit, quote validation, filtered outputs, and case-summary citation persistence passed. |
+| Stage 3.4 public analysis start and polling | Verified | FastAPI command/poll routes, BackgroundTasks lifecycle, safe failure behavior, and live Groq/Postman flow passed. |
+| Stage 3.5 persisted review reads | Verified | Overview, timeline, issues, tasks, and activity passed completed-run, empty-state, authentication, ownership, and archived-case QA. |
+| Stage 3.6 frontend integration | Verified | Dashboard/case flow, dedicated Upload route, signed uploads, analysis polling, review tabs, citation navigation, in-app PDF/DOCX/TXT readers, responsive layout, and the clean end-to-end browser rehearsal passed. |
+| Stage 4 lawyer review and task mutations | Not Started | Implement field confirm/edit/reject, manual task creation, task status transitions, and activity events. |
+| Stage 5 case chat | Not Started | Implement scoped history, retrieval, evidence citations, and general-guidance labeling. |
+| Stage 6 deployment and demo regression | Not Started | Deploy Railway/Vercel, set production CORS/env, run final property-dispute rehearsal. |
+
+## Current application behavior
+
+- New cases go to `/cases/{caseId}/upload`. This is the only page for upload, optional lawyer context, and **Analyze case**.
+- The Upload page aligns its upload card, document list, and reader to the same workspace grid.
+- Documents uses a responsive list, private in-app PDF preview, private DOCX preview, and stable extracted-passage navigation.
+- Analysis sends context only on explicit start. Context remains a clearly labeled assertion, never document evidence.
+- Overview, Timeline, Issues, Tasks, and Activity are read-only latest-completed-run views. A failed rerun leaves prior completed review output visible.
+- Key parties and core fields are requested from Groq when clearly stated in evidence; a single grounded corrective pass is allowed if the first response omits them.
 
 ## Environment tracker
 
-| Service | Owner | Status | Notes |
-| --- | --- | --- | --- |
-| GitHub repository | Team | Verified | Canonical remote: `aayushkumarrai/CasePilot-AI`. |
-| Supabase project | Sharad | Verified | Repository linked to `gojazidrlvbumopyjfbl`. |
-| Supabase Stage 1 schema and RLS | Sharad | Verified | Migration `20260926092442`, remote schema lint, and two-user owner isolation pass. |
-| Supabase Stage 2 Storage and schema | Sharad | Verified | Migration `20260926113000` applied: private `case-documents` bucket, documents/passages, RLS, and atomic activity RPCs. Live owner-isolation test passed. |
-| Supabase Stage 3.1 analysis foundation | Sharad | Verified | Migrations `20260926150000`–`20260926152000` applied: run-scoped outputs, normalized citations, RLS, and lifecycle RPCs. Live fixture and owner-isolation checks passed. |
-| Supabase Stage 3.3 case-summary citations | Sharad | Ready for Review | Ordered migrations `20260927130000` and `20260927130100` applied; linked schema lint returned no errors. Authenticated fixture verification remains. |
-| Groq API | Sharad | Verified | Replaced NVIDIA because its hosted inference timed out. `openai/gpt-oss-20b` passed the local synthetic smoke check in 1.262 seconds with validated citation-linked output. Add the same secrets to Railway during deployment. |
-| Railway | Sharad | Not Started | Deploy FastAPI and configure secrets. |
-| Vercel | Aayush / Akshata | Not Started | Deploy Next.js and set API/Supabase variables. |
+| Service | Status | Notes |
+| --- | --- | --- |
+| GitHub repository | Verified | Canonical remote: `aayushkumarrai/CasePilot-AI`. Current changes are prepared locally and await the maintainer’s commit/push. |
+| Supabase | Verified | Auth, owner RLS, private Storage, documents, passages, analysis outputs, and lifecycle schema are applied. |
+| Groq | Verified | Server-only `openai/gpt-oss-20b` smoke request passed. |
+| Railway | Not Started | Deploy FastAPI and set Supabase/Groq/CORS values. |
+| Vercel | Not Started | Deploy Next.js and set browser-safe Supabase/API variables. |
 
-## Current blockers
+## Remaining blockers and next actions
 
-| Blocker | Owner | Impact | Resolution |
-| --- | --- | --- | --- |
-| No fictional source documents | Team | Blocks realistic end-to-end analysis and rehearsal | Create the six-document property dispute packet. |
-| Stage 3–5 API contract and implementation are absent | Sharad | Blocks functional frontend analysis, review workspace, task lifecycle, citation navigation, and chat; the documented routes currently return `404`. | Implement and freeze the Stage 3–5 OpenAPI schemas/endpoints, then provide a configured integration environment. |
-| No local frontend environment or running API | Team | Blocks documented manual frontend verification and every `Verified` status update. | Create `apps/web/.env.local`, run the FastAPI service, and use two test users against the configured Supabase project. |
+| Item | Impact | Next action |
+| --- | --- | --- |
+| Final fictional property-dispute packet | Needed for a credible full rehearsal | Create/select the six fictional documents named in the demo script. |
+| Deployment | Demo cannot be shown outside the local machine | Deploy Railway then Vercel; configure CORS and Supabase Auth redirects. |
+| Stage 4 API contract | Field/task buttons must remain absent until routes exist | Plan and implement field review and task workflow mutations next. |
+
+## Stage 3 QA evidence — 2026-09-27
+
+The complete browser workflow passed: create a case, upload private evidence, wait for extraction, submit separate lawyer context, run Groq analysis, review overview/timeline/issues/tasks/activity, open citations in document readers, and confirm dashboard metrics. Empty, authentication, ownership, archived-case, and failed-rerun behavior passed the final QA record.
 
 ## Update rule
 
-Update this file whenever a work item changes status, an endpoint changes, a new blocker appears, or a verification test passes. Add a date and a link/screenshot/test result when marking an item Verified.
+Update this file whenever a route, migration, UI flow, test result, or blocker changes. Mark a line Verified only after automated checks and the relevant manual workflow both pass.

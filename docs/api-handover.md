@@ -1,4 +1,4 @@
-# API Handover — Stages 1 and 2
+# API Handover — Stages 1 Through 3.6
 
 Base URL: `https://<railway-service>/v1` in production and `http://localhost:8000/v1` locally.
 
@@ -29,7 +29,7 @@ Every request except `GET /health` and `GET /health/ready` uses `Authorization: 
 
 ## Implemented endpoints
 
-Stage 1 is covered by `postman/CasePilot-AI-Stage-1.postman_collection.json`. Stage 2 document intake is covered by `postman/CasePilot-AI-Stage-2.postman_collection.json`.
+The ordered maintainer verification path for all implemented work through Stage 3.3 is `postman/CasePilot-AI-Full-Pipeline-Stage-3.3.postman_collection.json`. The focused Stage 1 and Stage 2 collections remain available as references.
 
 | Method and path | Use |
 | --- | --- |
@@ -46,8 +46,15 @@ Stage 1 is covered by `postman/CasePilot-AI-Stage-1.postman_collection.json`. St
 | `POST /cases/{caseId}/documents/upload-url` | Creates a one-hour signed URL for one supported private upload. |
 | `POST /cases/{caseId}/documents` | Registers a completed upload or records an unsupported file. Returns `201`. |
 | `GET /cases/{caseId}/documents` | Lists documents newest first. |
-| `GET /documents/{documentId}` | Returns document metadata, DOCX/TXT passages, or a short-lived PDF read URL. |
+| `GET /documents/{documentId}` | Returns document metadata, stable DOCX/TXT passages, and a short-lived private read URL for ready PDF or DOCX files. |
 | `POST /documents/{documentId}/retry` | Reprocesses a failed supported document. Returns `202`. |
+| `POST /cases/{caseId}/analysis` | Starts explicit Groq-backed analysis for a ready owned case. Returns `202`. |
+| `GET /cases/{caseId}/analysis` | Returns safe latest-run polling status and completed-output availability. |
+| `GET /cases/{caseId}/overview` | Latest completed analysis overview, current lawyer context, grouped fields, parties, cited summaries, issues, proposed tasks, and counts. |
+| `GET /cases/{caseId}/timeline` | Latest completed run timeline, chronologically sorted with citations. |
+| `GET /cases/{caseId}/issues` | Latest completed conflicts and gaps with citations. |
+| `GET /cases/{caseId}/tasks` | Latest completed AI tasks with citations; read-only in Stage 3.5. |
+| `GET /cases/{caseId}/activity` | Latest 50 safe activity events for the case. |
 
 ## Stage 2 document upload flow
 
@@ -89,38 +96,64 @@ POST /cases/{caseId}/documents
 }
 ```
 
-`GET /documents/{documentId}` returns `passages` only for ready DOCX/TXT files. A ready PDF instead includes `read_url`, valid for one hour. All passages have stable UUIDs, labels, sequence numbers, and (for PDFs) page numbers. Failed documents have a safe `error_message`; only a `failed` supported document may be retried.
+`GET /documents/{documentId}` returns stable `passages` for ready DOCX/TXT files. Ready PDFs and DOCX files also include a one-hour `read_url` for the in-app private preview; TXT remains passage-based. All passages have stable UUIDs, labels, sequence numbers, and (for PDFs) page numbers. Failed documents have a safe `error_message`; only a `failed` supported document may be retried.
 
 The API returns `401` for a missing/invalid token, `404` for an absent, unowned, or archived parent case/document, `409` for the case document limit or invalid retry state, `422` for invalid metadata/path/size, and `503` when Supabase Storage is unavailable.
 
-## Planned endpoints — do not integrate yet
+## Stage 3.4 public analysis command
 
-### Stage 3.1 internal foundation
+`POST /cases/{caseId}/analysis` is now available. It accepts the optional lawyer context only when the lawyer explicitly starts analysis:
 
-Stage 3.1 has applied the run-scoped analysis schema, owner RLS, lawyer-context snapshot, normalized citation storage, and internal Supabase lifecycle RPCs. It intentionally adds **no FastAPI route**; `POST /cases/{caseId}/analysis` and `GET /cases/{caseId}/analysis` remain unavailable until Substage 3.4. The frontend must not call Supabase RPCs directly.
+```json
+POST /cases/{caseId}/analysis
+{
+  "lawyer_context": "Focus on payment and possession records."
+}
+```
 
-Maintainers can verify the lifecycle with `postman/CasePilot-AI-Stage-3.1-Internal.postman_collection.json` using a case that has a ready document and a valid `passage_uuid` from Stage 2 document detail.
+Whitespace-only context becomes `null`; input longer than 4,000 characters returns `422`. The API requires an owned active case with at least one ready document. It returns `202` with safe lifecycle metadata and does not expose prompt text, lawyer context, provider output, or provider credentials.
 
-### Stage 3.2 internal Groq client
+```json
+{
+  "id": "uuid",
+  "status": "queued",
+  "started_at": null,
+  "completed_at": null,
+  "error_message": null
+}
+```
 
-Stage 3.2 adds the server-only Groq client using `openai/gpt-oss-20b`. It has no public API route and does not persist output. It accepts prepared evidence/context text and returns validated typed output only to the later analysis orchestrator. Frontend code must never call Groq or receive `GROQ_API_KEY`.
+`GET /cases/{caseId}/analysis` is the polling route. Poll every 2–3 seconds only while `run.status` is `queued` or `processing`; stop on `completed` or `failed`. Before any run, it returns a `200` empty state. A failed rerun retains `has_completed_outputs: true` when an earlier completed run exists.
 
-Stage 3.3 adds the internal evidence assembler and citation gate. It loads only an owned active case’s ready passages, creates deterministic provider text, rejects evidence over 180,000 characters, and filters provider output so every retained factual item has passage-grounded support. The fixed case-summary citation target is internal (`target_type: case_summary`, `target_ref: case_summary`) and persists against the analysis run. It adds no HTTP endpoint; frontend behavior remains unchanged until Stage 3.4.
+```json
+{
+  "run": null,
+  "has_completed_outputs": false
+}
+```
 
-The following routes are part of later document-processing and AI stages. They are retained here as roadmap references only; calling them now returns `404`.
+The backend runs Groq, evidence assembly, citation validation, and persistence in an in-process background task. Groq is server-only. The frontend must call FastAPI and must not call Supabase lifecycle RPCs directly.
+
+### Internal analysis foundation
+
+Stages 3.1–3.3 provide run-scoped output storage, immutable context snapshots, the Groq client, deterministic evidence assembly, and citation validation. The existing `postman/CasePilot-AI-Full-Pipeline-Stage-3.3.postman_collection.json` remains the internal persistence verification record. Use `postman/CasePilot-AI-Stage-3.4-Public-Analysis.postman_collection.json` to verify the new public command and polling routes.
+
+## Stage 3.5 persisted review reads
+
+All five review routes validate active ownership first, then select only the latest `completed` analysis run. A queued, processing, or failed rerun never replaces the completed workspace output. Before the first completed run, overview returns `analysis_run: null`, a null `case_summary`, empty collections and zero counts; timeline, issues, tasks, and activity return `[]`.
+
+Each sourced item includes citations resolved to the document name, stable passage ID and label, optional page number, and stored quote. `lawyer_context` is the current case value and is displayed separately: it has no citations and is not evidence. The overview includes document summaries for the Documents page. Stage 3.5 has no review/task mutations.
+
+The Postman collection is `postman/CasePilot-AI-Stage-3.5-Review-Reads.postman_collection.json`; use an active `case_uuid` with a completed analysis run.
+
+The following routes remain planned for Stage 4 and later:
 
 | Method and path | Planned use |
 | --- | --- |
-| `POST /cases/{caseId}/analysis` | Start analysis; returns `202`. |
-| `GET /cases/{caseId}/analysis` | Poll every 2–3 seconds while processing. |
-| `GET /cases/{caseId}/overview` | Summary, confirmed fields, pending fields, parties, and counters. |
 | `PATCH /cases/{caseId}/fields/{fieldId}` | Confirm, reject, or edit an extracted field. |
-| `GET /cases/{caseId}/timeline` | Timeline events with citations. |
-| `GET /cases/{caseId}/issues` | Conflict/gap findings with citations. |
-| `GET/POST /cases/{caseId}/tasks` | List or create task. |
+| `GET/POST /cases/{caseId}/tasks` | Create manually entered task. |
 | `PATCH /tasks/{taskId}` | Edit text or set task state. |
 | `GET/POST /cases/{caseId}/chat` | Load/save case chat messages. |
-| `GET /cases/{caseId}/activity` | Case audit history. |
 
 ## Stage 1 request examples
 
@@ -142,23 +175,25 @@ POST /cases
 
 The response is `201` with the internal UUID in `id`. Use that UUID as `{caseId}` in all case routes.
 
-## Planned analysis context — Stage 3
+## Lawyer-provided context — Stage 3.4
 
-The planned analysis request accepts an optional lawyer-provided context field. It is unavailable until Stage 3 and currently returns `404` with the rest of the planned analysis routes.
-
-```json
-POST /cases/{caseId}/analysis
-{
-  "lawyer_context": "The buyer says possession was never handed over. Focus on payment and key-handover records."
-}
-```
-
-- The value is optional, trimmed, and limited to 4,000 characters.
-- An empty value is stored as `null`.
-- The API saves the current case value and snapshots it on the analysis run.
-- It is sent to AI as a labeled lawyer assertion, never as uploaded evidence or a citation source.
+The public analysis command accepts optional lawyer context. It is trimmed, limited to 4,000 characters, saved on the case, and snapshotted on the analysis run. It reaches Groq only as a labeled lawyer assertion, never as uploaded evidence or a citation source.
 
 ## Stage 1 frontend behavior
 
 - Show API errors near the action that failed and retain unsaved form values.
 - Regenerate TypeScript types from FastAPI `/openapi.json` whenever API schemas change.
+
+## Stage 3.6 dashboard metrics
+
+`GET /dashboard` now counts `pending_tasks` as proposed tasks and `unresolved_issues` as findings from the latest completed analysis run for each active owned case. Historic runs and queued, processing, or failed reruns do not affect either metric.
+
+## Dedicated upload and document previews
+
+New cases navigate to `/cases/{caseId}/upload`. That frontend route owns document upload, lawyer-provided context, and explicit analysis start. `GET /documents/{documentId}` now returns a short-lived `read_url` for ready PDFs and DOCX files; the browser uses it only for private in-app preview. TXT remains passage-based for stable evidence navigation.
+
+## Stage 3.6 browser integration status
+
+The current frontend is integrated with every implemented Stage 3 route. Case creation routes to `/cases/{caseId}/upload`; that route is the only place that uploads evidence, edits lawyer-provided context, and starts analysis. Completion routes to Overview. Documents is a reading-only evidence destination with PDF.js PDF preview, sanitized Mammoth DOCX preview, and stable TXT/DOCX passage navigation.
+
+No field, party, or task mutation route exists yet. The frontend renders these Stage 3 outputs as review-only data.

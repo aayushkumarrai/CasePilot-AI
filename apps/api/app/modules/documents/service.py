@@ -115,7 +115,7 @@ async def get_document(gateway: SupabaseGateway, user: CurrentUser, document_id:
     await _active_case(gateway, user, UUID(str(document["case_id"])))
     passages = await repository.passages(document_id) if document["status"] == "ready" and document["content_type"] != "application/pdf" else []
     read_url = None
-    if document["status"] == "ready" and document["content_type"] == "application/pdf":
+    if document["status"] == "ready" and document["content_type"] in {"application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}:
         try:
             read_url = await gateway.create_signed_read_url(BUCKET, document["storage_path"], SIGNED_URL_EXPIRES_SECONDS)
         except SupabaseError as exc:

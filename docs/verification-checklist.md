@@ -41,13 +41,20 @@ Use this checklist on the final demo environment. Record the date, person, and e
 | Mocked Groq client | Passed | Typed output, JSON-object request, context boundary, timeout, retry, and invalid-response tests pass locally. |
 | Live Groq smoke request | Passed | 2026-09-27: `scripts.smoke_groq` completed in 1.262 seconds using `openai/gpt-oss-20b`. The validated synthetic result included a summary, document summary, conflict, proposed task, and three passage-linked citations. |
 
-## Stage 3.3 verification record — in progress
+## Stage 3.3 verification record — verified
 
 | Workflow | Result | Evidence |
 | --- | --- | --- |
 | Local evidence and citation-gate tests | Passed | 2026-09-27: focused tests cover deterministic ordering, exact evidence size limit, normalized quote checks, invalid-citation filtering, uncited-summary rejection, and dependent-task filtering. |
 | Case-summary citation schema migration | Passed | 2026-09-27: `20260927130000` and `20260927130100` applied to the linked project; `supabase db lint --linked` returned no schema errors. |
-| Live owner-safe fixture | Pending | Complete a fixture run with a `case_summary` citation and confirm `analysis_citations.analysis_run_id` is populated. |
+| Live owner-safe fixture | Passed | 2026-09-27: all 35 requests in the full-pipeline collection passed. The fictional case was created, extracted, analyzed, archived, restored, and archived again. Request 28 returned all nine normalized citations, including the case-summary row with populated `analysis_run_id`; request 29 recorded lifecycle activity. |
+
+## Stage 3.4 verification record — verified
+
+| Workflow | Result | Evidence |
+| --- | --- | --- |
+| Public API and mocked pipeline suite | Passed | 2026-09-27: start/poll routes, blank context, no-evidence/configuration failures, reruns, active-run conflict, safe failure, and output persistence tests pass. |
+| Live public Groq/Postman flow | Passed | 2026-09-27: `POST /v1/cases/{caseId}/analysis` returned queued `202`; polling reached completed with `has_completed_outputs: true` and no public context/prompt leakage. |
 
 ## Setup
 
@@ -96,3 +103,21 @@ Use this checklist on the final demo environment. Record the date, person, and e
 - [ ] A fallback screen recording or screenshots are prepared.
 - [ ] Demo script was rehearsed once without backend errors.
 - [ ] Project readiness is marked Ready in `project-status.md`.
+
+## Stage 3.5 persisted review reads — verified
+
+- [x] Run the completed active-case review workflow: overview, timeline, issues, tasks, and activity returned from FastAPI.
+- [x] Verify overview’s summary, document summaries, issues, proposed task, counts, separated lawyer context, and source-linked citations.
+- [x] Verify chronological payment and key-handover timeline events.
+- [x] Verify empty state, `401`, and cross-user/archived `404` behavior for all five routes.
+
+## Stage 3.6 frontend integration — verified
+
+- [x] Type-check Stage 3 frontend API contracts and workspace integration.
+- [x] Add and exercise the dedicated Upload route, private document readers, responsive document layout, and analysis completion redirect during local browser QA.
+- [x] Install Vitest/Testing Library and run the citation-route test.
+- [x] Run one clean complete property-dispute journey in a browser.
+- [x] Verify citation navigation for TXT/DOCX and the PDF Evidence focus fallback.
+- [x] Verify a failed analysis rerun preserves existing review output.
+- [x] Verify review-route empty state, `401`, and cross-user/archived `404` behavior.
+- [x] Verify dashboard task and issue counts use latest completed output only.

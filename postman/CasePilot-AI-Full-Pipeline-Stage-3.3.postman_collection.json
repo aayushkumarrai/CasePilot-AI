@@ -1,0 +1,1120 @@
+{
+  "info": {
+    "name": "CasePilot AI \u2014 Full Pipeline Through Stage 3.3",
+    "description": "One flat, ordered maintainer verification collection for every implemented API and internal lifecycle capability through Stage 3.3. Run requests 01\u201335 one at a time, in order. Request 14 may be repeated until extraction finishes. Request 20 is a visible grounded fixture representing output already validated by the backend-only Groq client and Stage 3.3 citation gate; it never exposes a Groq key. All values that can identify an environment, user, token, or signed object URL are read from the uncommitted local environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 \u2014 Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{api_base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('reports ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 \u2014 Readiness",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{api_base_url}}/health/ready"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('reports ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 \u2014 Supabase Sign In",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{supabase_url}}/auth/v1/token?grant_type=password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('returns access token', () => pm.expect(body.access_token).to.be.a('string').and.not.empty);",
+              "pm.environment.set('access_token', body.access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 \u2014 Current User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns signed-in user', () => pm.expect(pm.response.json().id).to.be.a('string');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 \u2014 Dashboard Before Case",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns dashboard metrics', () => pm.expect(pm.response.json().metrics).to.be.an('object');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 \u2014 Create Pipeline Case",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"case_id\": \"{{case_external_id}}\",\n  \"case_name\": \"Rao v Mehta \\u2014 Full Pipeline Fixture\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('case_external_id', 'PIPELINE-' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('creates a draft case', () => pm.expect(body.status).to.eql('draft'));",
+              "pm.environment.set('case_uuid', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 \u2014 List Active Cases",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('includes pipeline case', () => pm.expect(pm.response.json().some(item => item.id === pm.environment.get('case_uuid'))).to.eql(true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 \u2014 Get Pipeline Case",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns the saved case', () => pm.expect(pm.response.json().id).to.eql(pm.environment.get('case_uuid'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 \u2014 Update Pipeline Case",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"case_name\": \"Rao v Mehta \\u2014 Updated Full Pipeline Fixture\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('updates case name', () => pm.expect(pm.response.json().case_name).to.include('Updated'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 \u2014 Request TXT Upload URL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/documents/upload-url",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_name\": \"property-dispute-fixture.txt\",\n  \"content_type\": \"text/plain\",\n  \"size_bytes\": 219\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('returns signed upload details', () => { pm.expect(body.storage_path).to.be.a('string'); pm.expect(body.upload_url).to.be.a('string'); });",
+              "pm.environment.set('document_storage_path', body.storage_path);",
+              "pm.environment.set('document_upload_url', body.upload_url);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 \u2014 Upload Fictional Evidence TXT",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "text/plain"
+          }
+        ],
+        "url": "{{document_upload_url}}",
+        "body": {
+          "mode": "raw",
+          "raw": "Buyer Rao paid INR 500000 on 10 June 2026. Seller Mehta states keys were handed over on 12 June 2026. Buyer Rao states possession remains disputed. No signed handover acknowledgment is included in the uploaded material.",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('uploads to private storage', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 \u2014 Register TXT Document",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/documents",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_name\": \"property-dispute-fixture.txt\",\n  \"content_type\": \"text/plain\",\n  \"size_bytes\": 219,\n  \"storage_path\": \"{{document_storage_path}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('creates supported document record', () => pm.expect(body.status).to.eql('uploaded'));",
+              "pm.environment.set('document_uuid', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 \u2014 List Documents While Processing",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/documents"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('shows registered document', () => pm.expect(pm.response.json().some(item => item.id === pm.environment.get('document_uuid'))).to.eql(true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 \u2014 List Documents Until Ready (repeat manually)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/documents"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const document = pm.response.json().find(item => item.id === pm.environment.get('document_uuid'));",
+              "pm.test('pipeline document is available to poll', () => pm.expect(document).to.exist);",
+              "if (document.status !== 'ready') { console.log('Repeat request 14 until status is ready. Current status: ' + document.status); }",
+              "pm.test('document is ready before request 15', () => pm.expect(document.status).to.eql('ready'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 \u2014 Read Ready Document",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/documents/{{document_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('returns stable extracted passages', () => { pm.expect(body.status).to.eql('ready'); pm.expect(body.passages).to.have.length.above(0); });",
+              "pm.environment.set('passage_uuid', body.passages[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 \u2014 Register Unsupported JPG",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/documents",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"file_name\": \"unsupported-photo.jpg\",\n  \"content_type\": \"image/jpeg\",\n  \"size_bytes\": 100,\n  \"storage_path\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 201', () => pm.response.to.have.status(201));",
+              "pm.test('records unsupported file visibly', () => pm.expect(pm.response.json().status).to.eql('unsupported'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 \u2014 Retry Ready Document Negative Check",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/documents/{{document_uuid}}/retry"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 409', () => pm.response.to.have.status(409));",
+              "pm.test('does not retry a ready document', () => pm.expect(pm.response.json().detail).to.be.a('string');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 \u2014 Start Analysis Run",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/rpc/start_analysis_run_with_activity",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"p_case_id\": \"{{case_uuid}}\",\n  \"p_lawyer_context\": \"Focus on payment and possession records. This is lawyer-provided context, not evidence.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "const rows = pm.response.json(); const body = rows[0];",
+              "pm.test('creates queued run with context snapshot', () => { pm.expect(body.status).to.eql('queued'); pm.expect(body.lawyer_context_snapshot).to.include('not evidence'); });",
+              "pm.environment.set('analysis_run_uuid', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 \u2014 Mark Analysis Processing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/rpc/mark_analysis_run_processing_with_activity",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"p_analysis_run_id\": \"{{analysis_run_uuid}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('moves run to processing', () => pm.expect(pm.response.json()[0].status).to.eql('processing'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 \u2014 Complete Analysis With Grounded Fixture",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/rpc/complete_analysis_run_with_outputs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"p_analysis_run_id\": \"{{analysis_run_uuid}}\",\n  \"p_case_summary\": \"Buyer Rao paid INR 500000, but possession remains disputed and no signed handover acknowledgment is in the uploaded material.\",\n  \"p_document_summaries\": [\n    {\n      \"ref\": \"document_summary_1\",\n      \"document_id\": \"{{document_uuid}}\",\n      \"summary\": \"The uploaded statement records payment, a claimed key handover, a possession dispute, and no signed handover acknowledgment.\"\n    }\n  ],\n  \"p_case_fields\": [\n    {\n      \"ref\": \"field_payment\",\n      \"field_key\": \"payment_amount\",\n      \"label\": \"Recorded payment\",\n      \"value\": \"INR 500000 paid on 10 June 2026.\"\n    }\n  ],\n  \"p_case_parties\": [\n    {\n      \"ref\": \"party_rao\",\n      \"name\": \"Rao\",\n      \"role\": \"Buyer\"\n    },\n    {\n      \"ref\": \"party_mehta\",\n      \"name\": \"Mehta\",\n      \"role\": \"Seller\"\n    }\n  ],\n  \"p_timeline_events\": [\n    {\n      \"ref\": \"timeline_payment\",\n      \"event_date_text\": \"10 June 2026\",\n      \"date_confidence\": \"exact\",\n      \"title\": \"Buyer payment recorded\",\n      \"description\": \"Buyer Rao paid INR 500000 on 10 June 2026.\"\n    }\n  ],\n  \"p_findings\": [\n    {\n      \"ref\": \"finding_possession_conflict\",\n      \"kind\": \"conflict\",\n      \"title\": \"Possession remains disputed\",\n      \"description\": \"Seller Mehta states keys were handed over on 12 June 2026, while Buyer Rao states possession remains disputed.\"\n    },\n    {\n      \"ref\": \"finding_handover_gap\",\n      \"kind\": \"gap\",\n      \"title\": \"Signed handover acknowledgment not found\",\n      \"description\": \"No signed handover acknowledgment is included in the uploaded material.\"\n    }\n  ],\n  \"p_tasks\": [\n    {\n      \"ref\": \"task_handover_acknowledgment\",\n      \"finding_ref\": \"finding_handover_gap\",\n      \"title\": \"Request signed handover acknowledgment\",\n      \"description\": \"Request the signed handover acknowledgment or confirm that it is not available.\"\n    }\n  ],\n  \"p_citations\": [\n    {\n      \"target_type\": \"case_summary\",\n      \"target_ref\": \"case_summary\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Buyer Rao paid INR 500000 on 10 June 2026.\"\n    },\n    {\n      \"target_type\": \"document_summary\",\n      \"target_ref\": \"document_summary_1\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Seller Mehta states keys were handed over on 12 June 2026.\"\n    },\n    {\n      \"target_type\": \"case_field\",\n      \"target_ref\": \"field_payment\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Buyer Rao paid INR 500000 on 10 June 2026.\"\n    },\n    {\n      \"target_type\": \"case_party\",\n      \"target_ref\": \"party_rao\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Buyer Rao\"\n    },\n    {\n      \"target_type\": \"case_party\",\n      \"target_ref\": \"party_mehta\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Seller Mehta\"\n    },\n    {\n      \"target_type\": \"timeline_event\",\n      \"target_ref\": \"timeline_payment\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Buyer Rao paid INR 500000 on 10 June 2026.\"\n    },\n    {\n      \"target_type\": \"finding\",\n      \"target_ref\": \"finding_possession_conflict\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"Buyer Rao states possession remains disputed.\"\n    },\n    {\n      \"target_type\": \"finding\",\n      \"target_ref\": \"finding_handover_gap\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"No signed handover acknowledgment is included in the uploaded material.\"\n    },\n    {\n      \"target_type\": \"task\",\n      \"target_ref\": \"task_handover_acknowledgment\",\n      \"passage_id\": \"{{passage_uuid}}\",\n      \"quote\": \"No signed handover acknowledgment is included in the uploaded material.\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.environment.get('passage_uuid')) { throw new Error('Run request 15 first so passage_uuid is available.'); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('completes analysis run', () => { const body = pm.response.json()[0]; pm.expect(body.status).to.eql('completed'); pm.expect(body.case_summary).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21 \u2014 Read Completed Analysis Run",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/analysis_runs?select=id,status,lawyer_context_snapshot,case_summary,completed_at&id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns completed run', () => { const row = pm.response.json()[0]; pm.expect(row.status).to.eql('completed'); pm.expect(row.case_summary).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "22 \u2014 Read Document Summaries",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/document_summaries?select=id,analysis_run_id,document_id,source_ref,summary&analysis_run_id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns document summary', () => pm.expect(pm.response.json()).to.have.length(1));",
+              "pm.environment.set('document_summary_uuid', pm.response.json()[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "23 \u2014 Read Case Fields",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/case_fields?select=id,analysis_run_id,source_ref,field_key,label,value,status&analysis_run_id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns payment field', () => pm.expect(pm.response.json().some(row => row.field_key === 'payment_amount')).to.eql(true));",
+              "pm.environment.set('case_field_uuid', pm.response.json()[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "24 \u2014 Read Case Parties",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/case_parties?select=id,analysis_run_id,source_ref,name,role,status&analysis_run_id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns Rao and Mehta', () => pm.expect(pm.response.json()).to.have.length(2));",
+              "const parties = pm.response.json(); pm.environment.set('rao_party_uuid', parties.find(row => row.name === 'Rao').id); pm.environment.set('mehta_party_uuid', parties.find(row => row.name === 'Mehta').id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "25 \u2014 Read Timeline Events",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/timeline_events?select=id,analysis_run_id,source_ref,event_date_text,date_confidence,title,description&analysis_run_id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns payment event', () => pm.expect(pm.response.json()).to.have.length(1));",
+              "pm.environment.set('timeline_event_uuid', pm.response.json()[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "26 \u2014 Read Findings",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/findings?select=id,analysis_run_id,source_ref,kind,title,description&analysis_run_id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns conflict and gap', () => pm.expect(pm.response.json()).to.have.length(2));",
+              "const findings = pm.response.json(); pm.environment.set('possession_conflict_uuid', findings.find(row => row.kind === 'conflict').id); pm.environment.set('handover_gap_uuid', findings.find(row => row.kind === 'gap').id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "27 \u2014 Read Proposed Tasks",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/tasks?select=id,analysis_run_id,finding_id,source_ref,title,description,status&analysis_run_id=eq.{{analysis_run_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns proposed task', () => { const row = pm.response.json()[0]; pm.expect(row.status).to.eql('proposed'); });",
+              "pm.environment.set('task_uuid', pm.response.json()[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "28 \u2014 Read Normalized Citations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/analysis_citations?select=id,analysis_run_id,target_type,passage_id,quote&or=(analysis_run_id.eq.{{analysis_run_uuid}},document_summary_id.eq.{{document_summary_uuid}},case_field_id.eq.{{case_field_uuid}},case_party_id.in.({{rao_party_uuid}},{{mehta_party_uuid}}),timeline_event_id.eq.{{timeline_event_uuid}},finding_id.in.({{possession_conflict_uuid}},{{handover_gap_uuid}}),task_id.eq.{{task_uuid}})&order=target_type.asc"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns citation for every grounded fixture output', () => { const rows = pm.response.json(); pm.expect(rows).to.have.length(9); pm.expect(rows.some(row => row.target_type === 'case_summary')).to.eql(true); pm.expect(rows.every(row => row.passage_id === pm.environment.get('passage_uuid'))).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "29 \u2014 Read Activity History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{supabase_url}}/rest/v1/activity_events?select=id,case_id,action,actor_type,details,created_at&case_id=eq.{{case_uuid}}&order=created_at.desc"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('includes analysis completion activity', () => pm.expect(pm.response.json().some(row => row.action === 'analysis_completed')).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "30 \u2014 Dashboard After Analysis",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('shows pipeline case in review', () => { const row = pm.response.json().cases.find(item => item.id === pm.environment.get('case_uuid')); pm.expect(row.status).to.eql('review'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "31 \u2014 Archive Pipeline Case",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "32 \u2014 List Active Cases After Archive",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('excludes archived pipeline case', () => pm.expect(pm.response.json().some(item => item.id === pm.environment.get('case_uuid'))).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "33 \u2014 List Archived Cases",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases?include_archived=true"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('includes archived pipeline case', () => { const row = pm.response.json().find(item => item.id === pm.environment.get('case_uuid')); pm.expect(row.archived_at).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "34 \u2014 Restore Pipeline Case",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/restore"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('restores pipeline case', () => pm.expect(pm.response.json().archived_at).to.eql(null));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "35 \u2014 Final Archive Cleanup",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('returns 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

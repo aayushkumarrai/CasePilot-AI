@@ -159,14 +159,14 @@ def test_invalid_json_and_invalid_output_are_rejected_without_retry() -> None:
     asyncio.run(invalid_output())
 
 
-def test_non_retryable_provider_error_and_no_public_analysis_route() -> None:
+def test_non_retryable_provider_error_and_analysis_route_is_registered() -> None:
     async def run() -> None:
         async with httpx.AsyncClient(base_url="https://groq.test/v1", transport=httpx.MockTransport(lambda _: httpx.Response(400, json={"message": "bad request"}))) as http_client:
             with pytest.raises(GroqProviderError):
                 await GroqClient(configured_settings(), http_client).analyze_case(AnalysisPrompt(uploaded_evidence="passage"))
 
     asyncio.run(run())
-    assert "/v1/cases/{case_id}/analysis" not in app.openapi()["paths"]
+    assert "/v1/cases/{case_id}/analysis" in app.openapi()["paths"]
 
 
 def test_contract_rejects_excessive_or_invalid_values() -> None:

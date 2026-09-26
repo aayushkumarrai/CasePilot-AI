@@ -1,52 +1,64 @@
-# Postman Testing — Stages 1 and 2
+# Postman Testing — Full Pipeline Through Stage 3.3
 
 Import these files into Postman:
 
-- `postman/CasePilot-AI-Stage-1.postman_collection.json`
-- `postman/CasePilot-AI-Stage-2.postman_collection.json`
+- `postman/CasePilot-AI-Full-Pipeline-Stage-3.3.postman_collection.json`
 - `postman/CasePilot-AI-Local.postman_environment.json`
+- `postman/CasePilot-AI-Stage-3.4-Public-Analysis.postman_collection.json`
 
-Set `api_base_url` to the local or Railway URL. Keep the trailing `/v1` out of this value: the collection adds it only for versioned API routes.
+The full-pipeline collection is intentionally **flat**: it has no folders and contains 35 requests numbered in the order they must be run. It is the maintainer verification path for every implemented capability from Stage 1 through Stage 3.3. The older Stage 1, Stage 2, and Stage 3.1 collections remain as focused references only.
 
-## Getting a token
+Set `api_base_url` to the local or Railway URL. Do not put `/v1` in that value: the collection adds it for versioned FastAPI routes. Set `supabase_url` and `supabase_anon_key` only in the active local Postman environment. Keep `access_token`, signed upload URLs, generated IDs, test email, and password in that environment; never export populated values or commit them.
 
-The collection includes Supabase **Sign up** and **Sign in** requests. Set `supabase_url` and `supabase_anon_key` in the environment, then enter a unique `test_email` and a strong `test_password` in the request body. A successful sign-in automatically stores `access_token` in the current Postman environment.
+## Before starting
 
-If the project requires email confirmation, confirm the account first and then run **Sign in**. The auth requests use the Supabase anonymous key only; never place a service-role key in Postman or frontend code.
+1. Start FastAPI and confirm requests 01 and 02 return `200`.
+2. Select the local environment and enter `supabase_url`, `supabase_anon_key`, `test_email`, and `test_password`.
+3. Use a fictional dedicated test account. If email confirmation is enabled, confirm it before request 03.
+4. Start at request 01 and run each request once in numeric order. Request 14 is the only polling request: repeat it manually until the TXT document reports `ready`.
 
-## Run order
+Request 03 authenticates with Supabase and saves the short-lived bearer token as `access_token`. The collection creates a timestamped Case ID and automatically saves `case_uuid`, storage values, `document_uuid`, the first stable `passage_uuid`, and `analysis_run_uuid` as later requests need them. Each request checks its expected response status and writes the body to the Postman console; Postman also shows the body in its response pane.
 
-1. **Health** folder: liveness and readiness.
-2. **Authentication** folder: sign up or sign in, then `GET /v1/me`.
-3. **Case lifecycle** folder in order: create, list, get, update, archive, list active, list archived, restore, dashboard.
-4. **Security checks** folder: remove the token to confirm `401`; sign in as a second account and run the ownership check to confirm `404`.
-5. **Document intake** folder in the Stage 2 collection: request an upload URL, `PUT` raw content to that signed URL, register the object, then list and inspect the document. Run unsupported-file and retry checks as applicable.
 
-The collection saves the created internal UUID into `case_uuid`, so no IDs need to be copied between requests.
+## Stage 3.4 public analysis check
+
+Use `CasePilot-AI-Stage-3.4-Public-Analysis.postman_collection.json` with an active `case_uuid` that already has at least one ready document. It signs in, starts analysis through FastAPI, and provides a polling request to repeat every 2–3 seconds while active. The collection contains no Groq credential and does not call internal Supabase analysis RPCs.
+
+## What the collection verifies
+
+| Request range | Verification |
+| --- | --- |
+| 01–05 | FastAPI liveness/readiness, Supabase sign-in, current user, and empty/current dashboard contract. |
+| 06–09 | Owner-scoped case creation, listing, read, and update. |
+| 10–17 | Private signed TXT upload, registration, asynchronous extraction, stable passage IDs, unsupported-file visibility, and retry rejection for a ready document. |
+| 18–20 | Internal analysis-run lifecycle, non-evidence lawyer context snapshot, and a grounded fixture completion. |
+| 21–29 | Immutable run outputs, normalized citations, and activity history read through owner-scoped Supabase REST access. |
+| 30–35 | Review case status, soft archive, active/archived filtering, restore, and final test-data cleanup. |
+
+The fixture TXT in request 11 is fictional property-dispute material. Request 20 includes a visible structured result with a case summary, document summary, payment field, Rao and Mehta parties, payment timeline event, possession conflict, missing-handover gap, proposed task, and normalized citations. Each quote is an exact substring of that uploaded passage.
+
+## Stage 3.3 boundary
+
+Request 20 exercises the existing Supabase persistence lifecycle with a fixture that represents output **after** Stage 3.2 Groq validation and the Stage 3.3 evidence/citation gate. Postman never calls Groq directly and never contains `GROQ_API_KEY`. Groq remains server-only until the later public analysis orchestration route is implemented.
 
 ## Expected results
 
-| Test | Expected result |
-| --- | --- |
-| Health | `200`, status `ok` |
-| Readiness | `200`, status `ready` |
-| Sign in | `200`; an access token is stored locally by Postman |
-| Me | `200`; returned `id` matches the token owner |
-| Create case | `201`; saves `case_uuid` |
-| Duplicate Case ID | `409` |
-| Archive | `204`; normal list excludes the case |
-| Restore | `200`; case becomes active again |
-| Missing token | `401` |
-| Other user reads first user’s case | `404` |
-| Supported document upload | `201`, then progresses from `uploaded` to `ready` |
-| Ready TXT/DOCX document | Detail includes stable passages |
-| Ready PDF document | Detail includes a temporary `read_url` |
-| Unsupported document | `201`, status `unsupported`, safe explanation |
+- Request 14 eventually returns the TXT document with `status: "ready"`; request 15 saves its first stable passage ID.
+- Request 16 records the JPG as `unsupported` without blocking the TXT document.
+- Request 17 returns `409` because a ready document cannot be retried.
+- Request 20 completes the run and changes the pipeline case to `review`.
+- Requests 21–28 return only output associated with the saved analysis-run ID, including a `case_summary` citation and eight output citations.
+- Request 30 shows the pipeline case in `review`.
+- Requests 31–35 prove archive filtering and leave the generated test case archived.
 
 ## Security rules while testing
 
-- Use fictional data and a dedicated test account.
-- Keep access tokens in an unshared Postman environment. Do not export a populated environment or commit it.
-- A bearer token identifies a user. Treat it like a temporary password.
-- Use the second account only to prove isolation. Do not attempt to alter another account’s data.
-- Delete test accounts from Supabase Auth after the hackathon if they are no longer needed.
+- Use only fictional data and a dedicated test account.
+- A bearer token is equivalent to a temporary password. Keep it in an unshared environment and obtain a new one by rerunning request 03 when it expires.
+- The direct Supabase RPC and table-read requests are maintainer verification for already implemented internal lifecycle storage. The frontend must continue to use FastAPI only; it must not call these RPCs or receive provider credentials.
+- Do not use a Supabase service-role key in Postman, the frontend, or this collection.
+- Sign in as a second test account separately if you need to re-run owner-isolation checks. Do not modify another account’s records.
+
+## Stage 3.5 persisted review reads
+
+Import `postman/CasePilot-AI-Stage-3.5-Review-Reads.postman_collection.json` with the local environment. Set `case_uuid` to an active case whose Stage 3.4 run has completed. Run Sign In, then Overview, Timeline, Issues, Tasks, and Activity in that order. The collection verifies the FastAPI response shapes and source-linked citations without direct reads from Supabase analysis tables.

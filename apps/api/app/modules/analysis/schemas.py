@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -30,6 +31,35 @@ class AnalysisPrompt(StrictModel):
     @classmethod
     def empty_context_is_none(cls, value: str | None) -> str | None:
         return value or None
+
+
+AnalysisRunStatus = Literal["queued", "processing", "completed", "failed"]
+
+
+class StartAnalysisRequest(StrictModel):
+    """The optional lawyer assertion saved only when explicit analysis starts."""
+
+    lawyer_context: Annotated[str | None, Field(max_length=4000)] = None
+
+    @field_validator("lawyer_context")
+    @classmethod
+    def empty_context_is_none(cls, value: str | None) -> str | None:
+        return value or None
+
+
+class AnalysisRunResponse(BaseModel):
+    """Safe public lifecycle metadata; never includes prompt or output content."""
+
+    id: UUID
+    status: AnalysisRunStatus
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
+
+
+class AnalysisStatusResponse(BaseModel):
+    run: AnalysisRunResponse | None = None
+    has_completed_outputs: bool
 
 
 class Citation(StrictModel):

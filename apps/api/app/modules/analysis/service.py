@@ -5,13 +5,25 @@ import unicodedata
 from collections import defaultdict
 from uuid import UUID
 
+from fastapi import BackgroundTasks, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.config import Settings
 from app.core.dependencies import CurrentUser
-from app.integrations.supabase_gateway import SupabaseGateway
+from app.core.errors import unavailable
+from app.integrations.groq_client import GroqClient, GroqError
+from app.integrations.supabase_gateway import SupabaseError, SupabaseGateway
 
 from .repository import AnalysisRepository
-from .schemas import AnalysisPrompt, AnalysisResult, CASE_SUMMARY_REF, Citation
+from .schemas import (
+    AnalysisPrompt,
+    AnalysisRunResponse,
+    AnalysisStatusResponse,
+    AnalysisResult,
+    CASE_SUMMARY_REF,
+    Citation,
+    StartAnalysisRequest,
+)
 
 MAX_EVIDENCE_CHARS = 180_000
 
@@ -199,3 +211,126 @@ class CitationValidator:
 
 def analysis_assembler(gateway: SupabaseGateway, user: CurrentUser) -> EvidenceAssembler:
     return EvidenceAssembler(AnalysisRepository(gateway, user))
+
+
+def _unprocessable(detail: str) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail)
+
+
+async def start_analysis(
+    gateway: SupabaseGateway,
+    user: CurrentUser,
+    case_id: UUID,
+    payload: StartAnalysisRequest,
+    background_tasks: BackgroundTasks,
+    settings: Settings,
+) -> AnalysisRunResponse:
+    """Preflight evidence before creating an immutable analysis run."""
+    try:
+        bundle = await analysis_assembler(gateway, user).assemble(case_id, payload.lawyer_context)
+    except EvidenceTooLarge as exc:
+        raise _unprocessable(exc.safe_message) from exc
+    except NoReadyEvidence as exc:
+        raise _unprocessable("At least one ready document is required for analysis") from exc
+    if not settings.groq_is_configured:
+        raise unavailable("AI analysis is not configured")
+
+    run = await AnalysisRepository(gateway, user).start_run(case_id, payload.lawyer_context)
+    # The RPC's snapshot is authoritative: it has trimmed the submitted text
+    # and converted whitespace-only input to null before the provider sees it.
+    snapshot = run.get("lawyer_context_snapshot")
+    prepared_bundle = EvidenceBundle(
+        documents=bundle.documents,
+        prompt=AnalysisPrompt(
+            uploaded_evidence=bundle.prompt.uploaded_evidence,
+            lawyer_context=snapshot,
+        ),
+    )
+    background_tasks.add_task(process_analysis, str(run["id"]), user.access_token, settings, prepared_bundle)
+    return AnalysisRunResponse.model_validate(run)
+
+
+async def get_analysis_status(
+    gateway: SupabaseGateway, user: CurrentUser, case_id: UUID
+) -> AnalysisStatusResponse:
+    latest, has_completed_outputs = await AnalysisRepository(gateway, user).latest_run_status(case_id)
+    return AnalysisStatusResponse(
+        run=AnalysisRunResponse.model_validate(latest) if latest else None,
+        has_completed_outputs=has_completed_outputs,
+    )
+
+
+async def process_analysis(
+    analysis_run_id: str,
+    access_token: str,
+    settings: Settings,
+    bundle: EvidenceBundle,
+) -> None:
+    """Execute one in-process run using the caller JWT so RLS remains active."""
+    gateway = SupabaseGateway(settings.supabase_url or "", settings.supabase_anon_key or "", access_token)
+    client = GroqClient(settings)
+    try:
+        processing = await gateway.rpc(
+            "mark_analysis_run_processing_with_activity",
+            {"p_analysis_run_id": analysis_run_id},
+        )
+        if not processing:
+            return
+        result = await client.analyze_case(bundle.prompt)
+        validator = CitationValidator()
+        validated = validator.validate(result, bundle)
+        if _needs_corrective_retry(validated.result, bundle):
+            try:
+                corrected = await client.analyze_case(
+                    bundle.prompt,
+                    "CORRECTIVE PASS: The supplied evidence contains explicit parties and/or material facts that were omitted. Return the complete JSON shape again, including every missing grounded case_party and case_field with valid passage citations. Do not invent anything.",
+                )
+                candidate = validator.validate(corrected, bundle)
+                if not _needs_corrective_retry(candidate.result, bundle):
+                    validated = candidate
+            except Exception:
+                # A valid first response is retained when the optional correction cannot improve it.
+                pass
+        await gateway.rpc(
+            "complete_analysis_run_with_outputs",
+            {"p_analysis_run_id": analysis_run_id, **validated.completion_payload()},
+        )
+    except Exception as exc:
+        await _fail_analysis(gateway, analysis_run_id, _safe_analysis_error(exc))
+    finally:
+        await client.close()
+        await gateway.close()
+
+
+
+def _needs_corrective_retry(result: AnalysisResult, bundle: EvidenceBundle) -> bool:
+    """Request one correction only when the uploaded evidence clearly has omitted categories."""
+    evidence = bundle.prompt.uploaded_evidence.casefold()
+    party_signal = bool(re.search(r"\b(buyer|seller|landlord|tenant|plaintiff|defendant|vendor|purchaser)\b", evidence))
+    field_signal = bool(re.search(r"\b(inr|rs\.?|payment|paid|possession|property|agreement|handover|keys?)\b", evidence))
+    return (party_signal and not result.case_parties) or (field_signal and not result.case_fields)
+
+def _safe_analysis_error(exc: Exception) -> str:
+    if isinstance(exc, GroqError):
+        return exc.safe_message
+    if isinstance(exc, GroundingValidationError):
+        return exc.safe_message
+    if isinstance(exc, EvidenceTooLarge):
+        return exc.safe_message
+    if isinstance(exc, NoReadyEvidence):
+        return "No ready document evidence was available for analysis."
+    if isinstance(exc, SupabaseError):
+        return "Analysis results could not be saved. Please try again."
+    return "Analysis could not be completed. Please try again."
+
+
+async def _fail_analysis(gateway: SupabaseGateway, analysis_run_id: str, message: str) -> None:
+    try:
+        await gateway.rpc(
+            "fail_analysis_run_with_activity",
+            {"p_analysis_run_id": analysis_run_id, "p_error_message": message},
+        )
+    except SupabaseError:
+        # There is no safe recovery if the same RLS-scoped connection cannot
+        # report the failure. Do not expose storage/provider internals.
+        return

@@ -18,6 +18,8 @@ Use a professional legal workspace: calm neutral surfaces, high contrast text, r
 | `/cases/:caseId/tasks` | Task review and manual task form | Task endpoints |
 | `/cases/:caseId/chat` | Saved case conversation | Chat endpoints |
 
+`/cases` is intentionally not a standalone screen. It redirects to `/dashboard`, which is the only case-list page.
+
 ## Shared case shell
 
 Render the Case ID, case name, status badge, document count, Analyze Case button, and navigation tabs on every case route. Keep selected tab state in the route, not component-only state.

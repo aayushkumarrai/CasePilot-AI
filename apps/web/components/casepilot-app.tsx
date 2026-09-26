@@ -9,7 +9,12 @@ import { RequireSession, useSession } from '@/components/session-provider'
 
 const tabs = [['Overview', 'overview', IconLayoutGrid], ['Documents', 'documents', IconFileDescription], ['Timeline', 'timeline', IconHistory], ['Issues', 'issues', IconAlertTriangle], ['Tasks', 'tasks', IconCheck], ['Chat', 'chat', IconMessageCircle]] as const
 const msg = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-const date = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+const date = (value: string | null | undefined) => {
+  if (!value) return 'Date unavailable'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return 'Date unavailable'
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(parsed)
+}
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { signOut } = useSession()
@@ -95,5 +100,18 @@ function CaseWorkspace({ caseId, section }: { caseId: string; section: string })
   return <Shell><header className="border-b border-[#DDE3EC]"><div className="flex flex-wrap items-start justify-between gap-4 pb-6"><div><p className="font-mono text-xs font-bold text-[#525252]">{item.case_id}</p><h1 className="mt-1 font-brand text-3xl font-bold">{item.case_name}</h1><p className="mt-2 text-sm text-[#525252]">Created {date(item.created_at)}</p></div><div className="flex flex-wrap items-center gap-2"><Status value={item.status} /><button onClick={() => setEditing(true)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#BFC7D4] px-3 text-sm font-semibold"><IconEdit className="size-4" />Edit</button><button disabled={pending} onClick={() => void archive()} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#FECACA] px-3 text-sm font-semibold text-[#991B1B] disabled:opacity-60"><IconArchive className="size-4" />Archive</button></div></div><nav className="flex gap-1 overflow-x-auto">{tabs.map(([label, slug, Icon]) => <Link key={slug} href={`/cases/${item.id}/${slug}`} className={`flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-semibold ${section === slug ? 'border-[#2563EB] text-[#1D4ED8]' : 'border-transparent text-[#525252]'}`}><Icon className="size-4" />{label}</Link>)}</nav></header>{error && <Retry text={error} onClick={() => void load()} />}{editing ? <form onSubmit={save} className="mt-6 max-w-2xl rounded-lg border border-[#DDE3EC] bg-white p-5"><h2 className="font-brand text-xl font-bold">Edit case</h2><label className="mt-4 flex flex-col gap-2 text-sm font-semibold">Case ID<input value={code} onChange={(event) => setCode(event.target.value)} className="h-11 rounded-lg border border-[#BFC7D4] px-3 font-normal" /></label><label className="mt-4 flex flex-col gap-2 text-sm font-semibold">Case name<input value={name} onChange={(event) => setName(event.target.value)} className="h-11 rounded-lg border border-[#BFC7D4] px-3 font-normal" /></label><div className="mt-5 flex gap-3"><button disabled={pending} className="min-h-10 rounded-lg bg-[#2563EB] px-4 text-sm font-semibold text-white">{pending ? 'Saving…' : 'Save changes'}</button><button type="button" onClick={() => setEditing(false)} className="min-h-10 px-3 text-sm font-semibold">Cancel</button></div></form> : section === 'documents' ? <DocumentWorkspace caseId={caseId} /> : <section className="mt-7 rounded-lg border border-dashed border-[#DDE3EC] bg-white p-8"><h2 className="font-brand text-2xl font-bold">{title}{section === 'overview' ? '' : ' is not available yet'}</h2><p className="mt-3 max-w-xl text-sm leading-6 text-[#525252]">{section === 'overview' ? 'Analysis, timeline, issues, tasks, and chat are intentionally unavailable until their corresponding backend APIs are delivered. This Stage 1 workspace supports case lifecycle management only.' : 'This screen is a Stage 1 placeholder. It will be connected when its backend API is delivered in a later implementation stage.'}</p></section>}</Shell>
 }
 
-function AppRoute() { const params = useParams<{ slug?: string[] }>(); const slug = params.slug ?? []; if (slug[0] === 'new') return <CreateCase />; if (slug[0] === 'archived') return <ArchivedCases />; return <CaseWorkspace caseId={slug[0] ?? ''} section={slug[1] ?? 'overview'} /> }
+function CasesIndexRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/dashboard') }, [router])
+  return <main className="grid min-h-screen place-items-center text-sm text-[#525252]">Opening dashboard…</main>
+}
+
+function AppRoute() {
+  const params = useParams<{ slug?: string[] }>()
+  const slug = params.slug ?? []
+  if (!slug[0]) return <CasesIndexRedirect />
+  if (slug[0] === 'new') return <CreateCase />
+  if (slug[0] === 'archived') return <ArchivedCases />
+  return <CaseWorkspace caseId={slug[0]} section={slug[1] ?? 'overview'} />
+}
 export default function CasePilotApp({ mode = 'case' }: { mode?: 'dashboard' | 'case' }) { return <RequireSession>{mode === 'dashboard' ? <Dashboard /> : <AppRoute />}</RequireSession> }

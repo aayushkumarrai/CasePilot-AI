@@ -18,7 +18,7 @@ The `/signin` and `/signup` screens are already wired to Supabase Auth. Complete
 1. Confirm sign-up shows the email-confirmation message when Supabase returns no session.
 2. Confirm sign-in routes an authenticated user to `/dashboard`.
 3. Add an application session provider or equivalent shared session state.
-4. Redirect unauthenticated visitors from `/dashboard` and every `/cases/*` route to `/signin`.
+4. Redirect unauthenticated visitors from `/dashboard` and every `/cases/*` route to `/signin`. The bare `/cases` path redirects authenticated users to `/dashboard`; it must not render an empty case workspace.
 5. Redirect authenticated visitors away from `/signin` and `/signup` to `/dashboard`.
 6. Add a sign-out action in the workspace navigation using `supabase.auth.signOut()`.
 7. On a FastAPI `401`, clear the stale session and route the user to `/signin`.

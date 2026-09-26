@@ -1,0 +1,38 @@
+{
+  "info": {
+    "name": "CasePilot AI — Stage 3 Internal Lifecycle",
+    "description": "Maintainer-only verification of Supabase lifecycle RPCs and normalized citations. This collection is not a browser or frontend API contract.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Analysis lifecycle RPCs",
+      "item": [
+        {
+          "name": "Start run with context",
+          "event": [{"listen":"test","script":{"exec":["pm.test('returns queued run', () => pm.response.to.have.status(200));","const row = pm.response.json()[0]; pm.expect(row.status).to.eql('queued'); pm.environment.set('analysis_run_uuid', row.id);"]}}],
+          "request":{"method":"POST","header":[{"key":"apikey","value":"{{supabase_anon_key}}"},{"key":"Authorization","value":"Bearer {{access_token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"p_case_id\": \"{{case_uuid}}\",\n  \"p_lawyer_context\": \"Focus on payment and possession records.\"\n}"},"url":"{{supabase_url}}/rest/v1/rpc/start_analysis_run_with_activity"}
+        },
+        {
+          "name":"Mark run processing",
+          "event":[{"listen":"test","script":{"exec":["pm.test('returns processing run', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()[0].status).to.eql('processing'); });"]}}],
+          "request":{"method":"POST","header":[{"key":"apikey","value":"{{supabase_anon_key}}"},{"key":"Authorization","value":"Bearer {{access_token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"p_analysis_run_id\": \"{{analysis_run_uuid}}\" }"},"url":"{{supabase_url}}/rest/v1/rpc/mark_analysis_run_processing_with_activity"}
+        },
+        {
+          "name":"Complete fixture run with cited summary and field",
+          "event":[{"listen":"prerequest","script":{"exec":["if (!pm.environment.get('passage_uuid')) { throw new Error('Set passage_uuid from GET /v1/documents/{documentId} before completing this fixture run.'); }"]}},{"listen":"test","script":{"exec":["pm.test('returns completed run', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()[0].status).to.eql('completed'); });"]}}],
+          "request":{"method":"POST","header":[{"key":"apikey","value":"{{supabase_anon_key}}"},{"key":"Authorization","value":"Bearer {{access_token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"p_analysis_run_id\": \"{{analysis_run_uuid}}\",\n  \"p_case_summary\": \"Fixture completion for lifecycle verification.\",\n  \"p_case_fields\": [{\"ref\": \"field-payment\", \"field_key\": \"payment_status\", \"label\": \"Payment status\", \"value\": \"Payment receipt is present.\"}],\n  \"p_citations\": [\n    {\"target_type\": \"case_summary\", \"target_ref\": \"case_summary\", \"passage_id\": \"{{passage_uuid}}\", \"quote\": \"Payment receipt received.\"},\n    {\"target_type\": \"case_field\", \"target_ref\": \"field-payment\", \"passage_id\": \"{{passage_uuid}}\", \"quote\": \"Payment receipt received.\"}\n  ]\n}"},"url":"{{supabase_url}}/rest/v1/rpc/complete_analysis_run_with_outputs"}
+        },
+        {
+          "name":"Verify latest completed output",
+          "request":{"method":"GET","header":[{"key":"apikey","value":"{{supabase_anon_key}}"},{"key":"Authorization","value":"Bearer {{access_token}}"}],"url":"{{supabase_url}}/rest/v1/analysis_runs?select=id,status,case_summary,lawyer_context_snapshot,completed_at&case_id=eq.{{case_uuid}}&status=eq.completed&order=completed_at.desc&limit=1"}
+        }
+        ,{
+          "name":"Verify case-summary citation",
+          "event":[{"listen":"test","script":{"exec":["pm.test('summary citation belongs to this run', () => { pm.response.to.have.status(200); const row = pm.response.json()[0]; pm.expect(row.analysis_run_id).to.eql(pm.environment.get('analysis_run_uuid')); pm.expect(row.target_type).to.eql('case_summary'); pm.expect(row.passage_id).to.eql(pm.environment.get('passage_uuid')); });"]}}],
+          "request":{"method":"GET","header":[{"key":"apikey","value":"{{supabase_anon_key}}"},{"key":"Authorization","value":"Bearer {{access_token}}"}],"url":"{{supabase_url}}/rest/v1/analysis_citations?select=analysis_run_id,target_type,passage_id&analysis_run_id=eq.{{analysis_run_uuid}}&target_type=eq.case_summary"}
+        }
+      ]
+    }
+  ]
+}

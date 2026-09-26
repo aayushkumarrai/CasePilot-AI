@@ -12,7 +12,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<Supabase publishable-or-anon-key>
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/v1
 ```
 
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` is intended for browser use with Row Level Security. Do not add `SUPABASE_SERVICE_ROLE_KEY`, `NVIDIA_API_KEY`, database passwords, or Railway credentials to the frontend.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is intended for browser use with Row Level Security. Do not add `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, database passwords, or Railway credentials to the frontend.
 
 Install the browser client:
 

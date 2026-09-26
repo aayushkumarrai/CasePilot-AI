@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000"
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
+    groq_api_key: str | None = None
+    groq_model: str | None = None
+    groq_base_url: str = "https://api.groq.com/openai/v1"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -19,6 +22,10 @@ class Settings(BaseSettings):
     @property
     def supabase_is_configured(self) -> bool:
         return bool(self.supabase_url and self.supabase_anon_key)
+
+    @property
+    def groq_is_configured(self) -> bool:
+        return bool(self.groq_api_key and self.groq_model)
 
 
 @lru_cache

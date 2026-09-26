@@ -25,6 +25,30 @@ Use this checklist on the final demo environment. Record the date, person, and e
 | Live failed-document retry | Passed | Confirmed during Stage 2 Postman verification. |
 | Live Storage owner isolation | Passed | Confirmed with two distinct Supabase users during Stage 2 Postman verification. |
 
+## Stage 3.1 verification record — verified
+
+| Workflow | Result | Evidence |
+| --- | --- | --- |
+| Analysis-foundation migration | Passed | `20260926150000_stage3_analysis_foundation.sql` and corrective lint migration applied. |
+| Remote schema lint | Passed | Linked Supabase schema lint returned no errors. |
+| Lifecycle fixture output | Passed | Internal Postman fixture completed a processing run with a context snapshot, case summary, cited output, and completion timestamp. |
+| Two-user RLS | Passed | Confirmed with a second authenticated user during Stage 3.1 Postman verification. |
+
+## Stage 3.2 verification record — verified
+
+| Workflow | Result | Evidence |
+| --- | --- | --- |
+| Mocked Groq client | Passed | Typed output, JSON-object request, context boundary, timeout, retry, and invalid-response tests pass locally. |
+| Live Groq smoke request | Passed | 2026-09-27: `scripts.smoke_groq` completed in 1.262 seconds using `openai/gpt-oss-20b`. The validated synthetic result included a summary, document summary, conflict, proposed task, and three passage-linked citations. |
+
+## Stage 3.3 verification record — in progress
+
+| Workflow | Result | Evidence |
+| --- | --- | --- |
+| Local evidence and citation-gate tests | Passed | 2026-09-27: focused tests cover deterministic ordering, exact evidence size limit, normalized quote checks, invalid-citation filtering, uncited-summary rejection, and dependent-task filtering. |
+| Case-summary citation schema migration | Passed | 2026-09-27: `20260927130000` and `20260927130100` applied to the linked project; `supabase db lint --linked` returned no schema errors. |
+| Live owner-safe fixture | Pending | Complete a fixture run with a `case_summary` citation and confirm `analysis_citations.analysis_run_id` is populated. |
+
 ## Setup
 
 - [ ] GitHub repository contains current documentation and implementation branch.
@@ -32,7 +56,7 @@ Use this checklist on the final demo environment. Record the date, person, and e
 - [ ] Supabase Storage bucket is private.
 - [ ] Railway API health endpoint returns success.
 - [ ] Vercel uses the deployed Railway API URL.
-- [ ] NVIDIA key is present on Railway only and never in frontend environment variables.
+- [ ] Groq key is present on Railway only and never in frontend environment variables.
 
 ## Case flow
 

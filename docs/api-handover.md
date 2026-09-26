@@ -95,6 +95,18 @@ The API returns `401` for a missing/invalid token, `404` for an absent, unowned,
 
 ## Planned endpoints — do not integrate yet
 
+### Stage 3.1 internal foundation
+
+Stage 3.1 has applied the run-scoped analysis schema, owner RLS, lawyer-context snapshot, normalized citation storage, and internal Supabase lifecycle RPCs. It intentionally adds **no FastAPI route**; `POST /cases/{caseId}/analysis` and `GET /cases/{caseId}/analysis` remain unavailable until Substage 3.4. The frontend must not call Supabase RPCs directly.
+
+Maintainers can verify the lifecycle with `postman/CasePilot-AI-Stage-3.1-Internal.postman_collection.json` using a case that has a ready document and a valid `passage_uuid` from Stage 2 document detail.
+
+### Stage 3.2 internal Groq client
+
+Stage 3.2 adds the server-only Groq client using `openai/gpt-oss-20b`. It has no public API route and does not persist output. It accepts prepared evidence/context text and returns validated typed output only to the later analysis orchestrator. Frontend code must never call Groq or receive `GROQ_API_KEY`.
+
+Stage 3.3 adds the internal evidence assembler and citation gate. It loads only an owned active case’s ready passages, creates deterministic provider text, rejects evidence over 180,000 characters, and filters provider output so every retained factual item has passage-grounded support. The fixed case-summary citation target is internal (`target_type: case_summary`, `target_ref: case_summary`) and persists against the analysis run. It adds no HTTP endpoint; frontend behavior remains unchanged until Stage 3.4.
+
 The following routes are part of later document-processing and AI stages. They are retained here as roadmap references only; calling them now returns `404`.
 
 | Method and path | Planned use |

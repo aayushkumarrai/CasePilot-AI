@@ -51,7 +51,7 @@ Create a small API client in `apps/web/lib/`.
 ### Completion check
 
 - The API client never sends a token from a hard-coded value or environment variable.
-- Browser code never contains Supabase service-role, NVIDIA, database, or Railway secrets.
+- Browser code never contains `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, database, or Railway secrets.
 
 ## Task group 3 — Dashboard integration
 

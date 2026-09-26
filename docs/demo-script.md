@@ -29,7 +29,7 @@ Do not include a signed handover acknowledgment. The system should flag it as no
 
 ## Fallback plan
 
-- Keep a pre-analyzed case available if live NVIDIA analysis is slow.
+- Keep a pre-analyzed case available as a fallback even though the verified Groq synthetic check completed in 1.262 seconds.
 - Keep screenshots of Overview, Documents, Key Issues, Tasks, and Chat.
 - If deployment fails, run the local app with the same fictional case packet.
 - Never use real client documents or credentials in the presentation.

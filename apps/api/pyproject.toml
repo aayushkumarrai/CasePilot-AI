@@ -21,6 +21,9 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+  "integration: requires explicit credentials and an owned ready-document fixture in Supabase"
+]
 
 [tool.ruff]
 line-length = 100

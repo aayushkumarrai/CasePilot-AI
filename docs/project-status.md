@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-09-26  
+**Last updated:** 2026-09-27
 **Current phase:** Stage 3 — Analysis and Review Outputs
 **Demo readiness:** At Risk — Stage 1–2 frontend implementation is ready for live integration review; AI analysis, later-stage APIs, deployment, and end-to-end verification remain.
 
@@ -32,7 +32,12 @@
 | Fictional document packet | Team | Not Started | Write six fictional documents | — |
 | Integration and automated tests | Team | Not Started | Backend and frontend feature completion | — |
 | Backend Stage 2 document intake | Sharad | Verified | Private bucket, owner-only RLS, signed upload/read flow, registration, background extraction, retry, and stable passages verified for PDF, DOCX, TXT, unsupported files, failure/retry, and two-user isolation. | `pytest` 14 passed; migration `20260926113000`; live Postman verification / 2026-09-26 |
-| Lawyer-provided context | Ready for Review (Stage 2 UI) | Local 4,000-character non-evidence textarea is implemented beside uploads. Persistence and analysis submission remain blocked on the Stage 3 API. | `pnpm --dir apps/web build` / 2026-09-26 |
+| Backend Stage 3 analysis and review outputs | Sharad | In Progress | Stages 3.1 and 3.2 are verified. Stage 3.3 migrations and automated checks pass; the final authenticated fixture remains. | Schema lint; backend tests / 2026-09-27 |
+| Stage 3.3 — evidence assembly and citation gate | Sharad | Ready for Review | Ready-only deterministic assembly, 180,000-character boundary, quote normalization, output filtering, case-summary citation mapping, remote migrations, and linked schema lint pass. Run the authenticated fixture next. | `pytest` 30 passed; `supabase db lint --linked` / 2026-09-27 |
+| Stage 3.2 — Groq client and structured output | Sharad | Verified | Groq `openai/gpt-oss-20b`, JSON-object mode, typed output contracts, retry boundary, mock tests, and live synthetic smoke output are verified. | `tests/test_groq_client.py`; smoke output / 2026-09-27 |
+| Stage 3.1 — analysis schema, RLS, and lifecycle | Sharad | Verified | Run-scoped immutable outputs, normalized citations, context snapshots, lifecycle RPCs, fixture completion, and two-user RLS are verified. | Remote migration/lint and Postman verification / 2026-09-26 |
+| Lawyer-provided context — Stage 2 UI | Ready for Review | Local 4,000-character non-evidence textarea is implemented beside uploads. Persistence and analysis submission remain blocked on the Stage 3 API. | `pnpm --dir apps/web build` / 2026-09-26 |
+| Lawyer-provided context — Stage 3 persistence | Planned | Stage 2 reserves the upload-area textarea; Stage 3 saves, snapshots, and sends it as a separately labeled non-evidence assertion during explicit analysis. | Documentation updated / 2026-09-26 |
 | Demo rehearsal and final checklist | Team | Not Started | Verified end-to-end flow | — |
 
 ## Environment tracker
@@ -43,7 +48,9 @@
 | Supabase project | Sharad | Verified | Repository linked to `gojazidrlvbumopyjfbl`. |
 | Supabase Stage 1 schema and RLS | Sharad | Verified | Migration `20260926092442`, remote schema lint, and two-user owner isolation pass. |
 | Supabase Stage 2 Storage and schema | Sharad | Verified | Migration `20260926113000` applied: private `case-documents` bucket, documents/passages, RLS, and atomic activity RPCs. Live owner-isolation test passed. |
-| NVIDIA API | Sharad | Not Started | Validate account access, selected model, structured-output quality. |
+| Supabase Stage 3.1 analysis foundation | Sharad | Verified | Migrations `20260926150000`–`20260926152000` applied: run-scoped outputs, normalized citations, RLS, and lifecycle RPCs. Live fixture and owner-isolation checks passed. |
+| Supabase Stage 3.3 case-summary citations | Sharad | Ready for Review | Ordered migrations `20260927130000` and `20260927130100` applied; linked schema lint returned no errors. Authenticated fixture verification remains. |
+| Groq API | Sharad | Verified | Replaced NVIDIA because its hosted inference timed out. `openai/gpt-oss-20b` passed the local synthetic smoke check in 1.262 seconds with validated citation-linked output. Add the same secrets to Railway during deployment. |
 | Railway | Sharad | Not Started | Deploy FastAPI and configure secrets. |
 | Vercel | Aayush / Akshata | Not Started | Deploy Next.js and set API/Supabase variables. |
 

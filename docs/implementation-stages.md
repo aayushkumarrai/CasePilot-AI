@@ -100,7 +100,7 @@ This document is the team’s working order for the hackathon. Complete each sta
 
 1. Implement `POST /analysis` and analysis status polling.
 2. Add nullable current lawyer context to the case and immutable context snapshot to each analysis run. Validate a maximum of 4,000 characters.
-3. Configure NVIDIA API through Railway environment variables; keep key server-side.
+3. Configure `GROQ_API_KEY`, `GROQ_MODEL=openai/gpt-oss-20b`, and `GROQ_BASE_URL=https://api.groq.com/openai/v1` through Railway environment variables; keep all three server-side.
 4. Build structured prompts for per-document extraction and cross-case analysis, with lawyer context in a separate non-evidence section.
 5. Generate document summaries, pending fields, key parties, timeline events, findings, and proposed tasks.
 6. Validate each returned citation against stored passages before persistence.

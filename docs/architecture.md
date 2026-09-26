@@ -8,7 +8,7 @@ flowchart LR
   W -->|private upload via signed URL| S[Supabase Storage]
   A --> P[Supabase Postgres]
   A --> S
-  A --> N[NVIDIA API]
+  A --> N[Groq API]
   S --> A
   A -->|analysis status and case data| W
 ```
@@ -22,7 +22,7 @@ flowchart LR
 | Supabase Auth | Email/password identity and session JWTs. |
 | Supabase Postgres | Case data, extracted evidence, analysis results, tasks, chat history, and activity history. |
 | Supabase Storage | Private original documents; browser access occurs through temporary signed URLs only. |
-| NVIDIA API | Structured extraction, case analysis, summaries, and chat answer generation. |
+| Groq API | Server-only structured extraction, case analysis, summaries, and chat answer generation through `openai/gpt-oss-20b`. |
 
 ## Processing lifecycle
 
@@ -47,6 +47,8 @@ flowchart LR
 | `document_passages` | Stable evidence units used by every citation. |
 | `case_fields` | Pending/confirmed/rejected extracted details and citations. |
 | `analysis_runs` | Stage 3 processing history, errors, and immutable lawyer-context snapshot used by that run. |
+| `document_summaries`, `case_fields`, `case_parties`, `timeline_events`, `findings`, `tasks` | Immutable run-scoped outputs. The workspace later selects the latest completed run by default. |
+| `analysis_citations` | Normalized output-to-passage citation links; case-summary citations attach directly to an analysis run, while other citations attach to their run-scoped output row. Document metadata is derived through the cited passage. |
 | `timeline_events` | Cited chronological events. |
 | `findings` | Cited conflicts and gaps. |
 | `tasks` | AI/manual task and status. |
@@ -60,10 +62,13 @@ flowchart LR
 - Storage bucket is private. Original documents never have public URLs.
 - The frontend sends the Supabase bearer token to FastAPI; FastAPI verifies it before accessing any case.
 - Lawyer-provided context is a separately labeled lawyer assertion, never document evidence or a valid citation source.
-- `NVIDIA_API_KEY`, Supabase service credentials, and JWT secrets remain in Railway environment variables only.
+- The evidence assembler reads only ready passages in deterministic order and rejects a complete prompt above 180,000 characters rather than truncating evidence.
+- The citation gate retains an output only when an NFKC/whitespace-normalized quote is present in its cited stored passage. The case summary needs a valid citation or the entire result fails before persistence.
+- `GROQ_API_KEY`, Supabase service credentials, and JWT secrets remain in Railway environment variables only.
+- The Stage 3.2 Groq client uses `https://api.groq.com/openai/v1/chat/completions` with `openai/gpt-oss-20b`, JSON-object mode, hidden low-effort reasoning, and Pydantic output validation. It is server-only and does not write database records directly.
 
 ## Deployment
 
 - Deploy `apps/web` to Vercel with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_API_BASE_URL`.
-- Deploy FastAPI to Railway with Supabase credentials, NVIDIA credentials, and `ALLOWED_ORIGINS` set to the Vercel URL.
+- Deploy FastAPI to Railway with Supabase credentials, Groq credentials, and `ALLOWED_ORIGINS` set to the Vercel URL.
 - Run Supabase migrations before deploying the API.

@@ -41,6 +41,44 @@
 | DOC-09 | Retry a failed supported document | Returns `202`, clears/replaces old passages during processing, and can reach `ready`. Ready and unsupported documents return `409`. |
 | DOC-10 | Use User B token for User A document/list/retry/storage object | Every API/Storage access is denied or obscured as `404`; User B cannot access the private object. |
 
+## Stage 3.1 analysis-foundation tests
+
+| ID | Scenario | Expected result |
+| --- | --- | --- |
+| ANA-01 | Start a run with an owned active case and ready evidence | A queued run stores a trimmed immutable context snapshot and sets the case to `processing`. |
+| ANA-02 | Start a run without ready evidence or on an archived/unowned case | Ready-evidence failure is rejected; unowned/archived access returns no row. |
+| ANA-03 | Start a second queued/processing run for the same case | Partial unique index rejects it. |
+| ANA-04 | Complete a processing run with fixture outputs and valid passage citation | Run becomes completed, case becomes review, outputs/citation share the same run scope. |
+| ANA-05 | Complete a run with another case’s document or passage | Transaction fails and writes no partial outputs. |
+| ANA-06 | Fail a first run, then fail a rerun after a completed run | Case returns to draft for the first failure and review for the later failure; completed results remain. |
+| ANA-07 | Query runs after multiple completions | Latest completed run is first when ordered by `completed_at desc`; older outputs remain stored. |
+| ANA-08 | User B reads or mutates User A run, output, citation, or RPC | RLS blocks the access or returns no rows. |
+
+## Stage 3.2 Groq client tests
+
+| ID | Scenario | Expected result |
+| --- | --- | --- |
+| GROQ-01 | Valid JSON-object response | Parses into typed in-memory analysis output; no database write occurs. |
+| GROQ-02 | Missing key or model | Fails before making a provider request. |
+| GROQ-03 | Context supplied or absent | Context appears only under its separate non-evidence prompt section, or is omitted entirely. |
+| GROQ-04 | Timeout, connection error, `408`, `429`, or `5xx` | Retries once, then returns safe temporary-provider error. |
+| GROQ-05 | Other provider `4xx` | Returns safe provider-rejection error without retry. |
+| GROQ-06 | Invalid JSON, shape, enum, confidence, output count, or output reference | Returns safe invalid-output error with no persistence. |
+| GROQ-07 | Live synthetic smoke fixture | `openai/gpt-oss-20b` returns validated cited output without Supabase access or persistence. |
+
+## Stage 3.3 evidence-assembly and citation-gate tests
+
+| ID | Scenario | Expected result |
+| --- | --- | --- |
+| EVD-01 | Assemble an owned active case with ready and non-ready documents | Only ready documents are included, ordered by document creation and passage sequence. |
+| EVD-02 | Complete payload equals or exceeds 180,000 characters | The exact limit is accepted; an over-limit payload raises a safe error without dropping passages. |
+| EVD-03 | Citation points to another case, a missing passage, another document’s summary, or a wrong quote | Citation is discarded. |
+| EVD-04 | Quote differs only by Unicode form or whitespace | Normalized matching retains the citation when the stored passage contains it. |
+| EVD-05 | Case summary has no valid citation | Entire result is rejected before persistence. |
+| EVD-06 | Other output has no valid citation | Output is omitted; a task whose referenced finding was omitted is also omitted. |
+| EVD-07 | Valid mixed output is transformed for the completion RPC | Only grounded outputs/citations remain; case-summary citations map to `analysis_run_id`. |
+| EVD-08 | Lawyer context is supplied | It appears only in the prompt’s non-evidence section and is never a citation source. |
+
 ## Frontend tests
 
 | ID | Scenario | Expected result |

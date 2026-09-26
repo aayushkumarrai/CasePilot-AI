@@ -25,11 +25,11 @@ CasePilot supports document organization and preparation. It does not make legal
 | Frontend | Next.js, React, TypeScript, Tailwind CSS, Vercel |
 | Backend | Python, FastAPI, Railway |
 | Data and authentication | Supabase Postgres, Storage, Auth, Row Level Security |
-| AI | NVIDIA API Catalog through an OpenAI-compatible backend integration |
+| AI | Groq OpenAI-compatible API using `openai/gpt-oss-20b` |
 
 ## Current implementation
 
-Stages 1 and 2 are verified with real Supabase Auth, Postgres RLS, and private Storage. The working backend includes authentication, dashboard and case lifecycle APIs, signed direct uploads for PDF/DOCX/TXT, background text extraction, stable evidence passages, temporary PDF read URLs, unsupported-file visibility, retries, and owner isolation. AI analysis begins in Stage 3.
+Stages 1 and 2 are verified with real Supabase Auth, Postgres RLS, and private Storage. Stage 3.1 analysis storage/lifecycle and Stage 3.2 Groq structured-output validation are also verified. Stage 3.3 evidence assembly and citation validation are implemented locally and await the linked Supabase migration and live fixture verification. The working backend includes authentication, dashboard and case lifecycle APIs, signed direct uploads for PDF/DOCX/TXT, background text extraction, stable evidence passages, temporary PDF read URLs, unsupported-file visibility, retries, and owner isolation. Public analysis-run APIs begin in Stage 3.4.
 
 ## Documentation
 
@@ -47,6 +47,7 @@ Stages 1 and 2 are verified with real Supabase Auth, Postgres RLS, and private S
 - [Demo script](docs/demo-script.md)
 - [Project status](docs/project-status.md)
 - [Stage-by-stage implementation plan](docs/implementation-stages.md)
+- [Stage 3 analysis breakdown](docs/stage3-analysis-breakdown.md)
 - [Development setup](docs/development-setup.md)
 - [Deployment configuration](docs/deployment.md)
 

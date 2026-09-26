@@ -10,7 +10,7 @@ The AI turns extracted case passages into reviewable suggestions. It never write
 2. **Text extraction:** split each file into stable passages. PDFs preserve page number when possible; DOCX uses paragraph labels; TXT uses passage labels.
 3. **Per-document extraction:** identify parties, claims, dates, amounts, property details, and a concise document summary.
 4. **Case analysis:** combine cited evidence to create a case summary, pending details, timeline events, conflicts, gaps, and proposed tasks. Optional lawyer-provided context may guide focus but remains a separate non-evidence assertion.
-5. **Citation validation:** keep only citations that reference an existing passage belonging to the stated document and contain a matching quote.
+5. **Citation validation:** keep only citations whose normalized non-empty quote occurs in an existing stored passage. Every factual output, including the case summary and a proposed task, needs at least one retained citation.
 6. **Lawyer review:** present valid outputs as suggestions, record every confirmation/rejection/edit, and keep activity history.
 
 ## Required structured output
@@ -19,15 +19,18 @@ The model response must use an application JSON schema equivalent to:
 
 ```json
 {
-  "document_summaries": [{ "document_id": "uuid", "summary": "...", "citations": [] }],
-  "case_fields": [{ "field_key": "client", "label": "Client", "value": "...", "confidence": 0.0, "citations": [] }],
-  "timeline": [{ "event_date": "YYYY-MM-DD or unknown", "title": "...", "description": "...", "citations": [] }],
-  "findings": [{ "kind": "conflict or gap", "title": "...", "description": "...", "citations": [] }],
-  "tasks": [{ "title": "...", "description": "...", "finding_reference": "..." }]
+  "case_summary": "...",
+  "document_summaries": [{ "ref": "document_summary_1", "document_id": "uuid", "summary": "..." }],
+  "case_fields": [{ "ref": "field_1", "field_key": "client", "label": "Client", "value": "...", "confidence": 0.0 }],
+  "citations": [{ "target_type": "case_summary", "target_ref": "case_summary", "passage_id": "uuid", "quote": "..." }]
 }
 ```
 
-The backend must validate the schema, discard invalid citations, and mark an output as needing review if it has no valid source.
+Output-specific `ref` values let the backend normalize citations separately. The case summary always uses the fixed reference `case_summary`. The backend drops uncited non-summary outputs, rejects an uncited case summary, and never sends lawyer-provided context as citation material.
+
+## Provider boundary
+
+The Stage 3.2 backend client sends prepared evidence and optional context to Groq's OpenAI-compatible chat-completions endpoint using `openai/gpt-oss-20b`. JSON-object mode, hidden low-effort reasoning, and Pydantic validation keep the response machine-readable. The client retries one temporary provider failure, rejects malformed JSON or invalid response shape, and does not persist or expose provider output until later analysis stages validate evidence citations.
 
 ## Prompt rules
 
@@ -56,5 +59,5 @@ If the evidence cannot answer the question, the assistant should say so and sugg
 
 - Unsupported type: mark document `unsupported`, show why, continue.
 - Extraction failure: mark `failed`, retain error message, allow retry, continue.
-- NVIDIA failure or invalid JSON: mark analysis run failed with an actionable error; preserve earlier completed results.
+- Groq failure or invalid JSON: mark analysis run failed with an actionable error; preserve earlier completed results.
 - Invalid citation: omit that output or mark it ungrounded for review; never display it as supported evidence.

@@ -36,6 +36,7 @@ Stage 1 is verified with real Supabase Auth and Row Level Security. It includes 
 - [Product requirements](docs/product-requirements.md)
 - [Architecture](docs/architecture.md)
 - [Frontend handover](docs/frontend-handover.md)
+- [Frontend Stage 1 integration tasks](docs/frontend-stage1-tasks.md)
 - [Frontend Auth and database-schema handover](docs/frontend-auth-and-schema-handover.md)
 - [API handover](docs/api-handover.md)
 - [Postman testing guide](docs/postman-testing.md)

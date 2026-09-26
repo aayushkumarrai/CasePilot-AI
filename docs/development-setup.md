@@ -26,4 +26,4 @@ pnpm --dir apps/web build
 uv run --directory apps/api pytest
 ```
 
-Stage 1 is verified after both services run locally, the backend tests pass, and the documented Postman ownership test returns `404` for a second user.
+Stages 1 and 2 are verified after both services run locally, the backend tests pass, and the documented Postman ownership test returns `404` for a second user. For Stage 2, also run the signed upload, registration, extraction, reader, retry, and unsupported-file requests in the Stage 2 collection.

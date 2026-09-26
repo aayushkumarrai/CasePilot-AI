@@ -1,6 +1,6 @@
-# Frontend Auth and Database Schema Handover — Stage 1
+# Frontend Auth and Database Schema Handover — Stages 1 and 2
 
-This document gives the frontend team what it needs to build email/password sign-up and sign-in, keep a session, and call the protected FastAPI routes. The browser connects directly to Supabase Auth. It never receives a service-role key.
+This document gives the frontend team what it needs to build email/password sign-up/sign-in, keep a session, call protected FastAPI routes, and use signed private document uploads. The browser connects directly only to Supabase Auth and to one-time signed Storage URLs. It never receives a service-role key.
 
 ## Frontend environment
 
@@ -147,12 +147,21 @@ Only one active `external_case_id` is permitted for the same owner. Archived cas
 
 RLS permits reading activity only for owned cases. The dashboard returns up to ten recent events; a standalone activity endpoint is a later stage.
 
+### Stage 2 document responses
+
+Use FastAPI document endpoints rather than querying `documents` or `document_passages` directly. A document response contains `id`, `case_id`, `file_name`, `content_type`, `size_bytes`, `status`, `error_message`, `created_at`, and `updated_at`.
+
+- Statuses: `uploaded`, `processing`, `ready`, `failed`, `unsupported`.
+- A ready PDF detail contains a temporary `read_url`.
+- A ready DOCX/TXT detail contains ordered `passages`, each with `id`, `sequence_number`, optional `page_number`, `passage_label`, and `content`.
+- File upload sequence is API signed URL → direct `PUT` to that URL → API registration. Never upload the file body to FastAPI or use a browser-side Storage service key.
+
 ## Auth-to-API smoke test
 
 1. Create an account or sign in.
 2. In the browser console, run `const { data } = await supabase.auth.getSession(); copy(data.session?.access_token)`.
-3. Import the Stage 1 Postman collection and environment.
+3. Import the Stage 1 and Stage 2 Postman collections and environment.
 4. Put the token only in the Postman environment’s `access_token` value. Never commit or share it.
 5. Run `GET /v1/me`, then the Case lifecycle folder in order.
 
-The Postman collection also obtains and stores the token automatically when its Supabase **Sign in** request succeeds.
+The Postman collections also obtain and store the token automatically when the Supabase **Sign in** request succeeds.

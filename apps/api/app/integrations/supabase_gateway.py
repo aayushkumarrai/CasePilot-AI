@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -73,6 +74,60 @@ class SupabaseGateway:
         return await self._request(
             "POST", f"/rest/v1/rpc/{function}", json=payload, prefer="return=representation"
         )
+
+    def _storage_path(self, path: str) -> str:
+        return quote(path, safe="/")
+
+    def _storage_url(self, signed_path: str) -> str:
+        if signed_path.startswith("http"):
+            return signed_path
+        return f"{self.base_url}/storage/v1{signed_path}"
+
+    async def create_signed_upload_url(self, bucket: str, storage_path: str, expires_in: int = 3600) -> str:
+        payload = await self._request(
+            "POST",
+            f"/storage/v1/object/upload/sign/{bucket}/{self._storage_path(storage_path)}",
+            json={"expiresIn": expires_in},
+        )
+        signed_path = payload.get("url") if isinstance(payload, dict) else None
+        if not signed_path:
+            raise SupabaseError(502, {"message": "Storage did not return an upload URL"})
+        return self._storage_url(signed_path)
+
+    async def create_signed_read_url(self, bucket: str, storage_path: str, expires_in: int = 3600) -> str:
+        payload = await self._request(
+            "POST",
+            f"/storage/v1/object/sign/{bucket}/{self._storage_path(storage_path)}",
+            json={"expiresIn": expires_in},
+        )
+        signed_path = payload.get("signedURL") if isinstance(payload, dict) else None
+        if not signed_path:
+            raise SupabaseError(502, {"message": "Storage did not return a read URL"})
+        return self._storage_url(signed_path)
+
+    async def object_exists(self, bucket: str, storage_path: str) -> bool:
+        try:
+            await self._request(
+                "GET", f"/storage/v1/object/info/{bucket}/{self._storage_path(storage_path)}"
+            )
+        except SupabaseError as exc:
+            if exc.status_code == 404:
+                return False
+            raise
+        return True
+
+    async def download_object(self, bucket: str, storage_path: str) -> bytes:
+        response = await self.client.get(
+            f"{self.base_url}/storage/v1/object/{bucket}/{self._storage_path(storage_path)}",
+            headers=self._headers(),
+        )
+        if response.is_error:
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = {"message": response.text}
+            raise SupabaseError(response.status_code, payload)
+        return response.content
 
     async def ready(self) -> None:
         await self._request("GET", "/rest/v1/profiles", params={"select": "id", "limit": "1"})

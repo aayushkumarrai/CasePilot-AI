@@ -9,7 +9,7 @@ The AI turns extracted case passages into reviewable suggestions. It never write
 1. **Document intake:** verify type/size; record unsupported files without stopping the case run.
 2. **Text extraction:** split each file into stable passages. PDFs preserve page number when possible; DOCX uses paragraph labels; TXT uses passage labels.
 3. **Per-document extraction:** identify parties, claims, dates, amounts, property details, and a concise document summary.
-4. **Case analysis:** combine cited evidence to create a case summary, pending details, timeline events, conflicts, gaps, and proposed tasks.
+4. **Case analysis:** combine cited evidence to create a case summary, pending details, timeline events, conflicts, gaps, and proposed tasks. Optional lawyer-provided context may guide focus but remains a separate non-evidence assertion.
 5. **Citation validation:** keep only citations that reference an existing passage belonging to the stated document and contain a matching quote.
 6. **Lawyer review:** present valid outputs as suggestions, record every confirmation/rejection/edit, and keep activity history.
 
@@ -32,6 +32,8 @@ The backend must validate the schema, discard invalid citations, and mark an out
 ## Prompt rules
 
 - Use only supplied passage text for factual statements.
+- Pass lawyer-provided context in a separate prompt section titled **Lawyer-provided context — not document evidence**.
+- The model may use that context to prioritize questions or follow-up tasks, but may not cite it, convert it into a confirmed fact, or use it to resolve a conflict.
 - Cite every factual claim using the provided document and passage IDs.
 - For a disagreement, preserve both statements and label it a potential conflict.
 - For absent information, say “not found in uploaded material.”

@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.modules.auth.router import router as auth_router
 from app.modules.cases.router import router as cases_router
 from app.modules.dashboard.router import router as dashboard_router
+from app.modules.documents.router import router as documents_router
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0")
@@ -43,3 +44,4 @@ async def readiness() -> dict[str, str]:
 app.include_router(auth_router)
 app.include_router(cases_router)
 app.include_router(dashboard_router)
+app.include_router(documents_router)

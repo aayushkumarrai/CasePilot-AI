@@ -29,7 +29,7 @@ CasePilot supports document organization and preparation. It does not make legal
 
 ## Current implementation
 
-Stage 1 is verified with real Supabase Auth and Row Level Security. It includes email/password sign-up and sign-in, authenticated profile lookup, dashboard data, case creation and updates, soft archive/restore, activity history, and Postman coverage. Document upload and AI analysis begin in later stages.
+Stages 1 and 2 are verified with real Supabase Auth, Postgres RLS, and private Storage. The working backend includes authentication, dashboard and case lifecycle APIs, signed direct uploads for PDF/DOCX/TXT, background text extraction, stable evidence passages, temporary PDF read URLs, unsupported-file visibility, retries, and owner isolation. AI analysis begins in Stage 3.
 
 ## Documentation
 
@@ -37,6 +37,7 @@ Stage 1 is verified with real Supabase Auth and Row Level Security. It includes 
 - [Architecture](docs/architecture.md)
 - [Frontend handover](docs/frontend-handover.md)
 - [Frontend Stage 1 integration tasks](docs/frontend-stage1-tasks.md)
+- [Frontend Stage 2 document tasks](docs/frontend-stage2-tasks.md)
 - [Frontend Auth and database-schema handover](docs/frontend-auth-and-schema-handover.md)
 - [API handover](docs/api-handover.md)
 - [Postman testing guide](docs/postman-testing.md)
@@ -49,7 +50,7 @@ Stage 1 is verified with real Supabase Auth and Row Level Security. It includes 
 - [Development setup](docs/development-setup.md)
 - [Deployment configuration](docs/deployment.md)
 
-The importable Stage 1 Postman collection and its safe environment template are in [`postman/`](postman/).
+The importable Stage 1 and Stage 2 Postman collections and safe environment template are in [`postman/`](postman/).
 
 ## Team
 

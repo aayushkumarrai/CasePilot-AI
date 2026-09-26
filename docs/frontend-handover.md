@@ -40,6 +40,13 @@ Render the Case ID, case name, status badge, document count, Analyze Case button
 ### Documents
 
 - Upload drop zone and file picker with 50-file/50-MB validation before upload.
+- Place an optional **Lawyer-provided context** textarea beside the multi-file upload controls. Limit it to 4,000 characters and show: “Add relevant background, questions, or facts provided by the lawyer. This is not document evidence.”
+- Keep upload and analysis separate: upload first; enable **Analyze Case** only after at least one document is ready; send the current context only when analysis starts.
+- **Stage 2 constraint:** render and retain the textarea locally, but do not send it to any upload or document endpoint and do not expect it in any Stage 2 response.
+- For each supported file, call the signed-upload URL endpoint, use `PUT` to upload the raw file to `upload_url`, then register the completed object. Register unsupported files with `storage_path: null` so users can see why they cannot be analyzed.
+- Poll the document-list route every 2–3 seconds only while a document is `uploaded` or `processing`. Stop polling when every document is `ready`, `failed`, or `unsupported`.
+- A selected ready PDF uses `read_url` in the PDF viewer. A selected ready DOCX/TXT renders the `passages` returned by document detail. Render `passage_label` and page number with each passage; treat each passage ID as stable for later citations.
+- Show `error_message` for failed or unsupported files. Render Retry only for `failed`; it calls the retry endpoint and must return the list item to a processing state.
 - Rows show name, format, status, error message/retry, and AI summary availability.
 - PDF uses an embedded signed URL; DOCX/TXT uses normalized extracted text.
 - Reader and AI summary appear side by side on desktop and stack on small screens.
@@ -50,6 +57,12 @@ Render the Case ID, case name, status badge, document count, Analyze Case button
 - Every item shows title, plain-language description, source citation, and a button to open its evidence.
 - Conflict cards show separate source statements rather than a merged conclusion.
 - Gap cards use “not found in uploaded material.”
+
+### Lawyer-provided context
+
+- Show the saved value in Overview under **Lawyer-provided context**.
+- Keep it visually separate from citations, extracted fields, AI summary, timeline events, and findings.
+- Preserve the textarea value if upload or analysis fails so the user can retry.
 
 ### Tasks
 

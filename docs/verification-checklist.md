@@ -12,6 +12,19 @@ Use this checklist on the final demo environment. Record the date, person, and e
 | Case lifecycle | Passed | Postman verified create, duplicate conflict, list, get, update, validation, archive, restore, dashboard, and activity history. |
 | Owner isolation | Passed | A second authenticated user received `404` for the first user’s case. |
 
+## Stage 2 automated verification record — 2026-09-26
+
+| Workflow | Result | Evidence |
+| --- | --- | --- |
+| Backend unit/API suite | Passed | 14 tests passed locally, including TXT/DOCX extraction, signed-upload registration flow, stable passages, unsupported-file state, and retry. |
+| Remote schema migration | Passed | `20260926113000_stage2_documents.sql` applied to linked Supabase project. |
+| Live signed TXT upload and extraction | Passed | Postman received a signed private URL, registered the object, observed `uploaded → ready`, and read two stable passages. |
+| Live signed PDF upload and private reading | Passed | Postman verified PDF upload, extraction lifecycle, and ready-document signed read behavior. |
+| Live unsupported-file state | Passed | Postman registered JPG metadata and received `unsupported` with its safe explanation. |
+| Live DOCX upload and passage extraction | Passed | Confirmed during Stage 2 Postman verification. |
+| Live failed-document retry | Passed | Confirmed during Stage 2 Postman verification. |
+| Live Storage owner isolation | Passed | Confirmed with two distinct Supabase users during Stage 2 Postman verification. |
+
 ## Setup
 
 - [ ] GitHub repository contains current documentation and implementation branch.
@@ -28,6 +41,7 @@ Use this checklist on the final demo environment. Record the date, person, and e
 - [ ] Upload accepts PDF, DOCX, and TXT.
 - [ ] Upload blocks a file over 50 MB and more than 50 documents.
 - [ ] Unsupported file is visible and explains why it was not analyzed.
+- [ ] Lawyer-provided context is optional, limited to 4,000 characters, and remains visible after an upload or analysis failure.
 - [ ] Analyze Case starts only after explicit user action.
 - [ ] Completed analysis changes the case to Review.
 
@@ -35,6 +49,7 @@ Use this checklist on the final demo environment. Record the date, person, and e
 
 - [ ] Overview shows summary, pending details, and confirmed details separately.
 - [ ] Every displayed factual finding has a working citation.
+- [ ] Lawyer-provided context is labeled separately and never appears as cited document evidence.
 - [ ] PDF citation opens the right page or passage label.
 - [ ] DOCX/TXT citation opens the right extracted passage.
 - [ ] Conflict view shows both source accounts.

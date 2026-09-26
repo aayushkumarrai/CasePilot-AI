@@ -109,7 +109,11 @@ Use the current Stage 1 endpoints only.
 - Direct browser access to Supabase database tables.
 - Any legal conclusion or autonomous action.
 
-Those items start after the Stage 2 backend document APIs are available.
+Those items are now available in the backend and are assigned in [Frontend Tasks — Stage 2 Document Intake](frontend-stage2-tasks.md).
+
+## Planned document-context behavior
+
+When document upload work begins, add an optional 4,000-character **Lawyer-provided context** textarea beside multi-file upload controls. The text is not sent during upload. It is sent only when the user selects Analyze Case after at least one document is ready, and it must remain visibly separate from document evidence and citations.
 
 ## Final verification
 

@@ -20,8 +20,8 @@ Do not include a signed handover acknowledgment. The system should flag it as no
 
 1. **Dashboard:** “CasePilot organizes scattered evidence into a lawyer-reviewable workspace.” Create or open `PROP-001`.
 2. **Overview:** Show that the user supplied only the Case ID and name. Point to AI-extracted details waiting for confirmation, with source links.
-3. **Documents:** Select the seller notice. Show the built-in preview/extracted reader and concise AI summary.
-4. **Timeline:** Show payment and possession-related events in chronological order.
+3. **Documents:** Upload the packet, then add: “The buyer says possession was never handed over. Focus on payment and key-handover records.” Point out the Lawyer-provided context label and explain that it guides review but is not evidence. Select the seller notice. Show the built-in preview/extracted reader and concise AI summary.
+4. **Timeline:** Show payment and possession-related events in chronological order, each supported by document passages rather than the lawyer-provided context.
 5. **Key Issues:** Open the possession conflict. Compare the seller notice and buyer email source passages. Then show the missing acknowledgment wording.
 6. **Tasks:** Approve “Request the signed handover acknowledgment,” then mark it done. Show activity history.
 7. **AI Chat:** Ask “What evidence discusses possession handover?” and show cited reply. Ask “How should I organize follow-up evidence?” and show its general-guidance label.

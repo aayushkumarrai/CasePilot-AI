@@ -1,0 +1,41 @@
+{
+  "info": {
+    "name": "CasePilot AI — Stage 2",
+    "description": "Secure document upload and extraction checks. Run Sign in from the Stage 1 collection first, then use the same environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Document intake",
+      "item": [
+        {
+          "name": "Request TXT upload URL",
+          "event": [{"listen":"test","script":{"exec":["pm.test('returns 200', () => pm.response.to.have.status(200));","const body = pm.response.json(); pm.environment.set('document_storage_path', body.storage_path); pm.environment.set('document_upload_url', body.upload_url);"]}}],
+          "request": {"method":"POST","header":[{"key":"Authorization","value":"Bearer {{access_token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"file_name\": \"postman-evidence.txt\",\n  \"content_type\": \"text/plain\",\n  \"size_bytes\": 37\n}"},"url":"{{api_base_url}}/v1/cases/{{case_uuid}}/documents/upload-url"}
+        },
+        {
+          "name": "Upload TXT directly to signed URL",
+          "request": {"method":"PUT","header":[{"key":"Content-Type","value":"text/plain"}],"body":{"mode":"raw","raw":"Payment receipt received.\n\nPossession remains disputed."},"url":"{{document_upload_url}}"}
+        },
+        {
+          "name": "Register completed TXT upload",
+          "event": [{"listen":"test","script":{"exec":["pm.test('returns 201', () => pm.response.to.have.status(201));","pm.environment.set('document_uuid', pm.response.json().id);"]}}],
+          "request": {"method":"POST","header":[{"key":"Authorization","value":"Bearer {{access_token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"file_name\": \"postman-evidence.txt\",\n  \"content_type\": \"text/plain\",\n  \"size_bytes\": 37,\n  \"storage_path\": \"{{document_storage_path}}\"\n}"},"url":"{{api_base_url}}/v1/cases/{{case_uuid}}/documents"}
+        },
+        {
+          "name": "List documents",
+          "request": {"method":"GET","header":[{"key":"Authorization","value":"Bearer {{access_token}}"}],"url":"{{api_base_url}}/v1/cases/{{case_uuid}}/documents"}
+        },
+        {
+          "name": "Read ready document passages",
+          "request": {"method":"GET","header":[{"key":"Authorization","value":"Bearer {{access_token}}"}],"url":"{{api_base_url}}/v1/documents/{{document_uuid}}"}
+        },
+        {
+          "name": "Register unsupported JPG",
+          "event": [{"listen":"test","script":{"exec":["pm.test('returns unsupported record', () => { pm.response.to.have.status(201); pm.expect(pm.response.json().status).to.eql('unsupported'); });"]}}],
+          "request": {"method":"POST","header":[{"key":"Authorization","value":"Bearer {{access_token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"file_name\": \"photo.jpg\",\n  \"content_type\": \"image/jpeg\",\n  \"size_bytes\": 100,\n  \"storage_path\": null\n}"},"url":"{{api_base_url}}/v1/cases/{{case_uuid}}/documents"}
+        }
+      ]
+    }
+  ]
+}

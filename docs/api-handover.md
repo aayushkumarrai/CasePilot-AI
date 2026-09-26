@@ -1,4 +1,4 @@
-# API Handover — Stage 1
+# API Handover — Stages 1 and 2
 
 Base URL: `https://<railway-service>/v1` in production and `http://localhost:8000/v1` locally.
 
@@ -29,7 +29,7 @@ Every request except `GET /health` and `GET /health/ready` uses `Authorization: 
 
 ## Implemented endpoints
 
-These are the only endpoints available in Stage 1 and are the routes included in the Postman collection at `postman/CasePilot-AI-Stage-1.postman_collection.json`.
+Stage 1 is covered by `postman/CasePilot-AI-Stage-1.postman_collection.json`. Stage 2 document intake is covered by `postman/CasePilot-AI-Stage-2.postman_collection.json`.
 
 | Method and path | Use |
 | --- | --- |
@@ -43,6 +43,55 @@ These are the only endpoints available in Stage 1 and are the routes included in
 | `PATCH /cases/{caseId}` | Change Case ID and/or case name. |
 | `DELETE /cases/{caseId}` | Soft-delete a case. Returns `204`. |
 | `POST /cases/{caseId}/restore` | Restore a soft-deleted case. |
+| `POST /cases/{caseId}/documents/upload-url` | Creates a one-hour signed URL for one supported private upload. |
+| `POST /cases/{caseId}/documents` | Registers a completed upload or records an unsupported file. Returns `201`. |
+| `GET /cases/{caseId}/documents` | Lists documents newest first. |
+| `GET /documents/{documentId}` | Returns document metadata, DOCX/TXT passages, or a short-lived PDF read URL. |
+| `POST /documents/{documentId}/retry` | Reprocesses a failed supported document. Returns `202`. |
+
+## Stage 2 document upload flow
+
+The frontend must use this sequence for every supported file:
+
+1. Call `POST /cases/{caseId}/documents/upload-url` with `file_name`, canonical `content_type`, and `size_bytes`.
+2. Upload the raw file directly to the returned `upload_url`; do not send the file through FastAPI.
+3. Call `POST /cases/{caseId}/documents` with the same metadata and returned `storage_path`.
+4. Poll `GET /cases/{caseId}/documents` while any document has `uploaded` or `processing` status.
+
+Supported type pairs are PDF/`application/pdf`, DOCX/`application/vnd.openxmlformats-officedocument.wordprocessingml.document`, and TXT/`text/plain`. Each file is limited to 50 MB and each case has a maximum of 50 registered documents. A non-supported file is registered through step 3 with `storage_path: null`; it remains visible with `status: "unsupported"`.
+
+```json
+POST /cases/{caseId}/documents/upload-url
+{
+  "file_name": "buyer-notice.pdf",
+  "content_type": "application/pdf",
+  "size_bytes": 184231
+}
+```
+
+```json
+{
+  "storage_path": "<user-id>/<case-id>/<generated-id>-buyer-notice.pdf",
+  "upload_url": "https://...",
+  "expires_in_seconds": 3600
+}
+```
+
+After direct upload:
+
+```json
+POST /cases/{caseId}/documents
+{
+  "file_name": "buyer-notice.pdf",
+  "content_type": "application/pdf",
+  "size_bytes": 184231,
+  "storage_path": "<returned-storage-path>"
+}
+```
+
+`GET /documents/{documentId}` returns `passages` only for ready DOCX/TXT files. A ready PDF instead includes `read_url`, valid for one hour. All passages have stable UUIDs, labels, sequence numbers, and (for PDFs) page numbers. Failed documents have a safe `error_message`; only a `failed` supported document may be retried.
+
+The API returns `401` for a missing/invalid token, `404` for an absent, unowned, or archived parent case/document, `409` for the case document limit or invalid retry state, `422` for invalid metadata/path/size, and `503` when Supabase Storage is unavailable.
 
 ## Planned endpoints — do not integrate yet
 
@@ -50,11 +99,6 @@ The following routes are part of later document-processing and AI stages. They a
 
 | Method and path | Planned use |
 | --- | --- |
-| `POST /cases/{caseId}/documents/upload-url` | Request signed upload URL before direct browser upload. |
-| `POST /cases/{caseId}/documents` | Register completed upload. |
-| `GET /cases/{caseId}/documents` | Document list and statuses. |
-| `GET /documents/{documentId}` | Selected document details, summary, and reader metadata. |
-| `POST /documents/{documentId}/retry` | Retry a failed document. |
 | `POST /cases/{caseId}/analysis` | Start analysis; returns `202`. |
 | `GET /cases/{caseId}/analysis` | Poll every 2–3 seconds while processing. |
 | `GET /cases/{caseId}/overview` | Summary, confirmed fields, pending fields, parties, and counters. |
@@ -85,6 +129,22 @@ POST /cases
 ```
 
 The response is `201` with the internal UUID in `id`. Use that UUID as `{caseId}` in all case routes.
+
+## Planned analysis context — Stage 3
+
+The planned analysis request accepts an optional lawyer-provided context field. It is unavailable until Stage 3 and currently returns `404` with the rest of the planned analysis routes.
+
+```json
+POST /cases/{caseId}/analysis
+{
+  "lawyer_context": "The buyer says possession was never handed over. Focus on payment and key-handover records."
+}
+```
+
+- The value is optional, trimmed, and limited to 4,000 characters.
+- An empty value is stored as `null`.
+- The API saves the current case value and snapshots it on the analysis run.
+- It is sent to AI as a labeled lawyer assertion, never as uploaded evidence or a citation source.
 
 ## Stage 1 frontend behavior
 

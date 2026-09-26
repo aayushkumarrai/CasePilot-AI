@@ -13,10 +13,19 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 1. Sign up or sign in using email and password.
 2. Create a case by entering only a Case ID and case name.
 3. Upload PDF, DOCX, or TXT documents.
-4. Select **Analyze case**.
-5. Review generated outputs and supporting passages.
-6. Confirm, edit, or reject pending case details.
-7. Act on suggested tasks and ask case-specific questions in AI Chat.
+4. Optionally add lawyer-provided context beside the upload controls.
+5. Select **Analyze case** after at least one document is ready.
+6. Review generated outputs and supporting passages.
+7. Confirm, edit, or reject pending case details.
+8. Act on suggested tasks and ask case-specific questions in AI Chat.
+
+## Delivered Stage 2 evidence foundation
+
+- The user receives a signed URL and uploads supported files directly to the private Storage bucket.
+- FastAPI registers each upload, extracts text asynchronously, and exposes document status and reader data.
+- PDF passages retain page numbers; DOCX/TXT passages retain stable labels and IDs.
+- Failed and unsupported files remain visible without preventing other files from becoming ready.
+- Stage 2 does not save or send lawyer-provided context, call AI, or create analysis outputs.
 
 ## Required behavior
 
@@ -24,9 +33,11 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 | --- | --- |
 | Case creation | Require a unique Case ID per owner and a case name. Do not ask the user for other case details. |
 | Files | Limit a case to 50 files and each file to 50 MB. PDF, DOCX, and TXT are supported. |
+| Lawyer-provided context | Allow one optional 4,000-character statement per case. It is saved when analysis starts, shown separately from evidence, and may guide AI focus without becoming document evidence. |
 | Analysis | Run only on explicit user request. Generate all workspace outputs together. |
 | Case details | Extract client, parties, property/location details, dates, payment amounts, and facts as pending suggestions. |
 | Evidence | Every factual result includes document and stable passage identifiers; PDFs include page number where available. |
+| Context boundary | Lawyer-provided context cannot support factual claims, receive document citations, resolve conflicts, or become a confirmed extracted detail without supporting uploaded evidence. |
 | Gaps | Use the phrase “not found in uploaded material.” Do not claim the missing record does not exist. |
 | Conflicts | Show competing accounts and their sources. Do not select one as true. |
 | Tasks | Allow user-created and AI-created tasks. Track proposed, approved, done, or rejected state. |

@@ -23,6 +23,23 @@
 | API-11 | Task lifecycle | Proposed → approved → done works; rejected is terminal. |
 | API-12 | Evidence chat | Assistant response contains valid citations. |
 | API-13 | No evidence chat | Response is labeled `general_guidance`. |
+| API-14 | Lawyer-provided context | Empty context becomes `null`; values over 4,000 characters return `422`; each analysis run stores an immutable snapshot. |
+| API-15 | Context evidence boundary | AI output never cites context or turns it into a document-backed fact without valid passages. |
+
+## Stage 2 document-intake tests
+
+| ID | Scenario | Expected result |
+| --- | --- | --- |
+| DOC-01 | Request an upload URL for a valid PDF, DOCX, or TXT under 50 MB | Returns a private user/case-prefixed storage path and expiring upload URL. |
+| DOC-02 | Register a supported upload whose object is absent or whose path belongs to another user/case | Returns `422`; no document record is created. |
+| DOC-03 | Register a supported direct upload | Record begins `uploaded`, background extraction transitions it through `processing` to `ready`, and activity is recorded. |
+| DOC-04 | Register JPG metadata with `storage_path: null` | Returns visible `unsupported` document with a safe explanation. |
+| DOC-05 | Parse PDF, DOCX, and TXT | Produces ordered stable passages; PDF passages retain page number and all content blocks are at most 1,500 characters. |
+| DOC-06 | Parse empty, scanned, malformed, or non-UTF-8 material | Document becomes `failed` with a safe error; unrelated documents still process. |
+| DOC-07 | Read a ready PDF | Detail has a temporary `read_url`; no passage content is returned. |
+| DOC-08 | Read a ready DOCX/TXT | Detail includes ordered passages with labels and IDs. |
+| DOC-09 | Retry a failed supported document | Returns `202`, clears/replaces old passages during processing, and can reach `ready`. Ready and unsupported documents return `409`. |
+| DOC-10 | Use User B token for User A document/list/retry/storage object | Every API/Storage access is denied or obscured as `404`; User B cannot access the private object. |
 
 ## Frontend tests
 
@@ -36,19 +53,22 @@
 | WEB-06 | Field review | Confirm/Edit/Reject updates visible field grouping. |
 | WEB-07 | Task state | Moving task updates its section and activity history. |
 | WEB-08 | Chat | Cited and general-guidance labels render correctly. |
+| WEB-09 | Lawyer-provided context | Textarea is beside uploads, preserves input after failure, sends only on Analyze Case, and displays separately from evidence. |
 
 ## End-to-end acceptance test
 
 1. Sign in with the demo lawyer account.
 2. Create `PROP-001 — Rao v Mehta`.
 3. Upload the six fictional documents.
-4. Select Analyze Case and wait for `review` state.
-5. Confirm one pending party/detail field and edit another.
-6. Open the possession conflict and inspect both cited sources.
-7. Confirm the missing handover acknowledgment is presented as absent only from uploaded material.
-8. Approve and complete the suggested task.
-9. Ask a case-specific AI question and inspect its citation.
-10. Ask a general-preparation question and confirm its label.
+4. Enter lawyer-provided context: “The buyer says possession was never handed over. Focus on payment and key-handover records.”
+5. Select Analyze Case and wait for `review` state.
+6. Confirm the saved context remains visibly separate from document evidence.
+7. Confirm one pending party/detail field and edit another.
+8. Open the possession conflict and inspect both cited sources.
+9. Confirm the missing handover acknowledgment is presented as absent only from uploaded material.
+10. Approve and complete the suggested task.
+11. Ask a case-specific AI question and inspect its citation.
+12. Ask a general-preparation question and confirm its label.
 
 ## Exit rule
 

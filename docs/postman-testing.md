@@ -1,8 +1,9 @@
-# Postman Testing — Stage 1
+# Postman Testing — Stages 1 and 2
 
 Import these files into Postman:
 
 - `postman/CasePilot-AI-Stage-1.postman_collection.json`
+- `postman/CasePilot-AI-Stage-2.postman_collection.json`
 - `postman/CasePilot-AI-Local.postman_environment.json`
 
 Set `api_base_url` to the local or Railway URL. Keep the trailing `/v1` out of this value: the collection adds it only for versioned API routes.
@@ -19,6 +20,7 @@ If the project requires email confirmation, confirm the account first and then r
 2. **Authentication** folder: sign up or sign in, then `GET /v1/me`.
 3. **Case lifecycle** folder in order: create, list, get, update, archive, list active, list archived, restore, dashboard.
 4. **Security checks** folder: remove the token to confirm `401`; sign in as a second account and run the ownership check to confirm `404`.
+5. **Document intake** folder in the Stage 2 collection: request an upload URL, `PUT` raw content to that signed URL, register the object, then list and inspect the document. Run unsupported-file and retry checks as applicable.
 
 The collection saves the created internal UUID into `case_uuid`, so no IDs need to be copied between requests.
 
@@ -36,6 +38,10 @@ The collection saves the created internal UUID into `case_uuid`, so no IDs need 
 | Restore | `200`; case becomes active again |
 | Missing token | `401` |
 | Other user reads first user’s case | `404` |
+| Supported document upload | `201`, then progresses from `uploaded` to `ready` |
+| Ready TXT/DOCX document | Detail includes stable passages |
+| Ready PDF document | Detail includes a temporary `read_url` |
+| Unsupported document | `201`, status `unsupported`, safe explanation |
 
 ## Security rules while testing
 

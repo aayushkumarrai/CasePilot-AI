@@ -73,10 +73,11 @@ This document is the team’s working order for the hackathon. Complete each sta
 ### Frontend subplan — Akshata
 
 1. Build upload drop zone, file picker, client-side file validation, progress, and errors.
-2. Build document list with status, failure reason, retry, and selected-document state.
-3. Build PDF reader using temporary signed URL.
-4. Build extracted text viewer for DOCX/TXT with passage labels.
-5. Reserve a side panel for AI document summary.
+2. Reserve an optional 4,000-character Lawyer-provided context textarea beside multi-file uploads. It is not sent during upload and must state that it is not document evidence.
+3. Build document list with status, failure reason, retry, and selected-document state.
+4. Build PDF reader using temporary signed URL.
+5. Build extracted text viewer for DOCX/TXT with passage labels.
+6. Reserve a side panel for AI document summary.
 
 ### Exit checks
 
@@ -84,6 +85,10 @@ This document is the team’s working order for the hackathon. Complete each sta
 - Unsupported image file shows an understandable status without breaking the page.
 - User can read an uploaded PDF without downloading it.
 - Passage identifiers are stable and can be linked from other screens.
+
+### Completion record — 2026-09-26
+
+**Verified.** Private PDF, DOCX, and TXT uploads, background extraction, PDF reading, stable passages, unsupported-file visibility, retry, and two-user owner isolation passed live Postman checks. The optional context control remains frontend-only until Stage 3.
 
 ---
 
@@ -94,18 +99,20 @@ This document is the team’s working order for the hackathon. Complete each sta
 ### Backend subplan — Sharad
 
 1. Implement `POST /analysis` and analysis status polling.
-2. Configure NVIDIA API through Railway environment variables; keep key server-side.
-3. Build structured prompts for per-document extraction and cross-case analysis.
-4. Generate document summaries, pending fields, key parties, timeline events, findings, and proposed tasks.
-5. Validate each returned citation against stored passages before persistence.
-6. Continue analysis when one document fails; record the failure clearly.
-7. Store analysis run, outputs, and activity history.
+2. Add nullable current lawyer context to the case and immutable context snapshot to each analysis run. Validate a maximum of 4,000 characters.
+3. Configure NVIDIA API through Railway environment variables; keep key server-side.
+4. Build structured prompts for per-document extraction and cross-case analysis, with lawyer context in a separate non-evidence section.
+5. Generate document summaries, pending fields, key parties, timeline events, findings, and proposed tasks.
+6. Validate each returned citation against stored passages before persistence.
+7. Continue analysis when one document fails; record the failure clearly.
+8. Store analysis run, outputs, and activity history.
 
 ### Frontend subplan — Aayush
 
 1. Add Analyze Case action and processing state to the case shell.
-2. Poll analysis status every 2–3 seconds only while the run is active.
-3. Display analysis errors and retry guidance without deleting prior completed results.
+2. Send the optional lawyer-provided context only when Analyze Case is selected; preserve it after failures and show the saved value separately in Overview.
+3. Poll analysis status every 2–3 seconds only while the run is active.
+4. Display analysis errors and retry guidance without deleting prior completed results.
 
 ### Exit checks
 

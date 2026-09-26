@@ -8,7 +8,7 @@ Use a professional legal workspace: calm neutral surfaces, high contrast text, r
 
 | Route | Screen | Primary API |
 | --- | --- | --- |
-| `/login`, `/signup` | Email/password authentication | Supabase Auth |
+| `/signin`, `/signup` | Email/password authentication | Supabase Auth |
 | `/dashboard` | Case list, metrics, activity, Create Case | `GET /dashboard`, `GET /cases` |
 | `/cases/new` | Case ID and case name form | `POST /cases` |
 | `/cases/:caseId/overview` | Summary, case fields, parties, quick issues/tasks | `GET /overview` |

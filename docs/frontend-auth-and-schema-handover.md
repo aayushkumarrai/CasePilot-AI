@@ -7,12 +7,12 @@ This document gives the frontend team what it needs to build email/password sign
 Create `apps/web/.env` from `apps/web/.env.example`:
 
 ```env
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<Supabase publishable-or-anon-key>
-VITE_API_BASE_URL=http://localhost:8000/v1
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<Supabase publishable-or-anon-key>
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/v1
 ```
 
-`VITE_SUPABASE_ANON_KEY` is intended for browser use with Row Level Security. Do not add `SUPABASE_SERVICE_ROLE_KEY`, `NVIDIA_API_KEY`, database passwords, or Railway credentials to the frontend.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is intended for browser use with Row Level Security. Do not add `SUPABASE_SERVICE_ROLE_KEY`, `NVIDIA_API_KEY`, database passwords, or Railway credentials to the frontend.
 
 Install the browser client:
 
@@ -22,14 +22,14 @@ pnpm --filter web add @supabase/supabase-js
 
 ## One shared client
 
-Create `apps/web/src/lib/supabase.ts`:
+Create `apps/web/lib/supabase.ts`:
 
 ```ts
 import { createClient } from "@supabase/supabase-js";
 
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 ```
 
@@ -75,7 +75,7 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Please sign in again.");
 
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${path}`, {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",

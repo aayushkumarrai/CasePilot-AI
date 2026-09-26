@@ -2,6 +2,16 @@
 
 Use this checklist on the final demo environment. Record the date, person, and evidence URL or screenshot in `project-status.md`.
 
+## Stage 1 verification record — 2026-09-26
+
+| Workflow | Result | Evidence |
+| --- | --- | --- |
+| FastAPI unit/API suite | Passed | 8 tests passed locally. |
+| Local health and readiness | Passed | `/health` and `/health/ready` returned `200`. |
+| Supabase email/password authentication | Passed | Supabase JWT obtained through the Next.js sign-in flow. |
+| Case lifecycle | Passed | Postman verified create, duplicate conflict, list, get, update, validation, archive, restore, dashboard, and activity history. |
+| Owner isolation | Passed | A second authenticated user received `404` for the first user’s case. |
+
 ## Setup
 
 - [ ] GitHub repository contains current documentation and implementation branch.

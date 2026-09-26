@@ -18,14 +18,18 @@ CasePilot supports document organization and preparation. It does not make legal
 - Create, edit, approve, reject, and complete tasks.
 - Hold a persisted case-specific AI chat, with citations for evidence-based answers.
 
-## Planned stack
+## Stack
 
 | Area | Choice |
 | --- | --- |
-| Frontend | React, TypeScript, Tailwind CSS, Vercel |
+| Frontend | Next.js, React, TypeScript, Tailwind CSS, Vercel |
 | Backend | Python, FastAPI, Railway |
 | Data and authentication | Supabase Postgres, Storage, Auth, Row Level Security |
 | AI | NVIDIA API Catalog through an OpenAI-compatible backend integration |
+
+## Current implementation
+
+Stage 1 is verified with real Supabase Auth and Row Level Security. It includes email/password sign-up and sign-in, authenticated profile lookup, dashboard data, case creation and updates, soft archive/restore, activity history, and Postman coverage. Document upload and AI analysis begin in later stages.
 
 ## Documentation
 
@@ -42,6 +46,7 @@ CasePilot supports document organization and preparation. It does not make legal
 - [Project status](docs/project-status.md)
 - [Stage-by-stage implementation plan](docs/implementation-stages.md)
 - [Development setup](docs/development-setup.md)
+- [Deployment configuration](docs/deployment.md)
 
 The importable Stage 1 Postman collection and its safe environment template are in [`postman/`](postman/).
 

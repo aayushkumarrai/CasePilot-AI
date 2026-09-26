@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "CasePilot API"
     app_env: str = "development"
-    allowed_origins: str = "http://localhost:5173"
+    allowed_origins: str = "http://localhost:3000"
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
 

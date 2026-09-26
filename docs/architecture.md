@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  W[React web app on Vercel] -->|Supabase Auth token| A[FastAPI on Railway]
+  W[Next.js web app on Vercel] -->|Supabase Auth token| A[FastAPI on Railway]
   W -->|private upload via signed URL| S[Supabase Storage]
   A --> P[Supabase Postgres]
   A --> S
@@ -17,7 +17,7 @@ flowchart LR
 
 | Component | Responsibility |
 | --- | --- |
-| React app | Authentication screens, dashboard, case workspace, upload experience, document reader, task review, chat, and API state. |
+| Next.js app | Authentication screens, dashboard, case workspace, upload experience, document reader, task review, chat, and API state. |
 | FastAPI | Verifies the user token, issues signed upload URLs, parses documents, calls AI, validates citations, writes analysis outputs, and exposes REST endpoints. |
 | Supabase Auth | Email/password identity and session JWTs. |
 | Supabase Postgres | Case data, extracted evidence, analysis results, tasks, chat history, and activity history. |
@@ -62,6 +62,6 @@ flowchart LR
 
 ## Deployment
 
-- Deploy `apps/web` to Vercel with `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_BASE_URL`.
+- Deploy `apps/web` to Vercel with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_API_BASE_URL`.
 - Deploy FastAPI to Railway with Supabase credentials, NVIDIA credentials, and `ALLOWED_ORIGINS` set to the Vercel URL.
 - Run Supabase migrations before deploying the API.

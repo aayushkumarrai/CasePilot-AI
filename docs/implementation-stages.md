@@ -15,7 +15,7 @@ This document is the team’s working order for the hackathon. Complete each sta
    - Create the project, enable email/password Auth, create the private `case-documents` Storage bucket, and apply owner-only RLS rules.
    - Store project URL and anonymous key in the frontend environment; store service credentials only in Railway/FastAPI.
 3. **Application scaffolds** — Aayush and Sharad
-   - Create React/TypeScript/Tailwind and FastAPI projects in the agreed monorepo paths.
+   - Create Next.js/React/TypeScript/Tailwind and FastAPI projects in the agreed monorepo paths.
    - Add local environment examples and health checks.
 4. **API contract freeze** — Sharad, Akshata, Aayush
    - Review [API Handover](api-handover.md) together.
@@ -196,7 +196,7 @@ This document is the team’s working order for the hackathon. Complete each sta
    - Run the end-to-end property-dispute scenario on one shared preview environment.
    - Fix API mismatches before visual polishing.
 4. **Deployment** — Sharad, Aayush, Akshata
-   - Deploy FastAPI to Railway and React to Vercel.
+   - Deploy FastAPI to Railway and Next.js to Vercel.
    - Set CORS and production environment variables.
 
 ### Exit checks

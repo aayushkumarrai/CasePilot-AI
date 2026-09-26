@@ -1,8 +1,8 @@
 # Project Status
 
 **Last updated:** 2026-09-26  
-**Current phase:** Documentation and implementation setup  
-**Demo readiness:** At Risk — application implementation and environment setup have not started.
+**Current phase:** Stage 1 — Identity, Cases, and Dashboard Foundation
+**Demo readiness:** At Risk — Stage 1 backend and Supabase migration are deployed locally/linked; frontend integration and two-user verification remain.
 
 ## Status definitions
 
@@ -18,12 +18,15 @@
 
 | Work item | Owner | Status | Dependency / next action | Verified by / date |
 | --- | --- | --- | --- | --- |
-| Product, architecture, frontend and API handover docs | Sharad | Ready for Review | Team review and repository commit | — |
+| Product, architecture, frontend and API handover docs | Sharad | Verified | API contract frozen for Stage 1 | Team / 2026-09-26 |
 | Project status, test plan, checklist, demo script | Sharad | Ready for Review | Team review and repository commit | — |
-| Supabase project, Auth, Storage, RLS | Sharad | Not Started | Create Supabase project and run migrations | — |
-| FastAPI service and NVIDIA integration | Sharad | Not Started | Supabase configuration and NVIDIA key | — |
-| Dashboard and case shell | Aayush | Not Started | Frontend project and API contract | — |
-| Auth, case creation, uploads, document reader | Akshata | Not Started | Supabase frontend configuration and upload API | — |
+| Stage-by-stage implementation plan | Sharad | Ready for Review | Team review and repository commit | — |
+| Frontend and FastAPI foundation | Sharad | Verified | Directory structure, health check, environment examples, and local setup guide added | 2026-09-26 |
+| Supabase Stage 1 schema, profile trigger, and RLS | Sharad | Ready for Review | Migration applied and remote lint passed; run two-user RLS verification | `20260926092442`, lint / 2026-09-26 |
+| FastAPI Stage 1 identity, cases, and dashboard APIs | Sharad | Ready for Review | Automated tests and live health/readiness pass; Postman collection prepared; run real bearer-token and two-user RLS verification | `pytest`, Postman collection, live readiness / 2026-09-26 |
+| Postman API and security verification package | Sharad | Ready for Review | Import collection, create two test accounts, and record two-user RLS result | `postman/`, `docs/postman-testing.md` / 2026-09-26 |
+| Dashboard and case shell | Aayush | In Progress | Implement Stage 1 screens using frozen API contract | — |
+| Auth, case creation, uploads, document reader | Akshata | In Progress | Implement Auth and Stage 1 case creation; documents begin in Stage 2 | — |
 | Overview, timeline, issues, tasks, AI Chat | Aayush | Not Started | API endpoints and mock/API types | — |
 | Fictional document packet | Team | Not Started | Write six fictional documents | — |
 | Integration and automated tests | Team | Not Started | Backend and frontend feature completion | — |
@@ -33,8 +36,9 @@
 
 | Service | Owner | Status | Notes |
 | --- | --- | --- | --- |
-| GitHub repository | Team | In Progress | Canonical remote: `aayushkumarrai/CasePilot-AI`. |
-| Supabase | Sharad | Not Started | Auth, database, private bucket, RLS. |
+| GitHub repository | Team | Verified | Canonical remote: `aayushkumarrai/CasePilot-AI`. |
+| Supabase project | Sharad | Verified | Repository linked to `gojazidrlvbumopyjfbl`. |
+| Supabase Stage 1 schema and RLS | Sharad | Ready for Review | Migration `20260926092442` applied; remote schema lint passed. |
 | NVIDIA API | Sharad | Not Started | Validate account access, selected model, structured-output quality. |
 | Railway | Sharad | Not Started | Deploy FastAPI and configure secrets. |
 | Vercel | Aayush / Akshata | Not Started | Deploy React and set API/Supabase variables. |
@@ -43,7 +47,7 @@
 
 | Blocker | Owner | Impact | Resolution |
 | --- | --- | --- | --- |
-| No implementation environment configured | Team | Blocks feature development | Create Supabase, NVIDIA, Railway, and Vercel configuration. |
+| Two Supabase Auth test sessions are unavailable | Sharad | Blocks final owner-isolation verification | Create two test accounts through the app/Auth flow, then run the documented two-user RLS test. |
 | No fictional source documents | Team | Blocks realistic end-to-end analysis and rehearsal | Create the six-document property dispute packet. |
 
 ## Update rule

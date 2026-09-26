@@ -1,0 +1,15 @@
+{
+  "name": "casepilot-ai",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:web": "pnpm --dir apps/web dev",
+    "dev:api": "uv --directory apps/api run uvicorn app.main:app --reload --port 8000",
+    "test:web": "pnpm --dir apps/web test",
+    "test:api": "uv --directory apps/api run pytest"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "devDependencies": {
+    "supabase": "^2.118.0"
+  }
+}

@@ -32,12 +32,18 @@ CasePilot supports document organization and preparation. It does not make legal
 - [Product requirements](docs/product-requirements.md)
 - [Architecture](docs/architecture.md)
 - [Frontend handover](docs/frontend-handover.md)
+- [Frontend Auth and database-schema handover](docs/frontend-auth-and-schema-handover.md)
 - [API handover](docs/api-handover.md)
+- [Postman testing guide](docs/postman-testing.md)
 - [AI pipeline](docs/ai-pipeline.md)
 - [Test plan](docs/test-plan.md)
 - [Verification checklist](docs/verification-checklist.md)
 - [Demo script](docs/demo-script.md)
 - [Project status](docs/project-status.md)
+- [Stage-by-stage implementation plan](docs/implementation-stages.md)
+- [Development setup](docs/development-setup.md)
+
+The importable Stage 1 Postman collection and its safe environment template are in [`postman/`](postman/).
 
 ## Team
 

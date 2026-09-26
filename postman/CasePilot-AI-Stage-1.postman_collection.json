@@ -1,0 +1,131 @@
+{
+  "info": {
+    "_postman_id": "a0b4bac1-f11f-4352-8da8-df13c9ab0a93",
+    "name": "CasePilot AI — Stage 1",
+    "description": "Stage 1 FastAPI and Supabase Auth verification. Use a local, unshared environment for tokens.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 200', () => pm.response.to.have.status(200));", "pm.test('status is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"] } }],
+          "request": { "method": "GET", "url": "{{api_base_url}}/health" }
+        },
+        {
+          "name": "Readiness",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 200', () => pm.response.to.have.status(200));", "pm.test('status is ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"] } }],
+          "request": { "method": "GET", "url": "{{api_base_url}}/health/ready" }
+        }
+      ]
+    },
+    {
+      "name": "Supabase Authentication",
+      "item": [
+        {
+          "name": "Sign up test user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "apikey", "value": "{{supabase_anon_key}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"data\": { \"display_name\": \"Postman Test Lawyer\" }\n}" },
+            "url": "{{supabase_url}}/auth/v1/signup"
+          }
+        },
+        {
+          "name": "Sign in and save token",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('sign in succeeds', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.expect(body.access_token, 'access token').to.be.a('string').and.not.empty;", "pm.environment.set('access_token', body.access_token);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "apikey", "value": "{{supabase_anon_key}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}" },
+            "url": "{{supabase_url}}/auth/v1/token?grant_type=password"
+          }
+        },
+        {
+          "name": "Get current user profile",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns current profile', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/me" }
+        }
+      ]
+    },
+    {
+      "name": "Case lifecycle",
+      "item": [
+        {
+          "name": "Create case",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.expect(body.status).to.eql('draft');", "pm.environment.set('case_uuid', body.id);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"case_id\": \"{{case_external_id}}\",\n  \"case_name\": \"Rao v Mehta — Postman Test\"\n}" }, "url": "{{api_base_url}}/v1/cases" }
+        },
+        {
+          "name": "Reject duplicate active Case ID",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 409', () => pm.response.to.have.status(409));"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"case_id\": \"{{case_external_id}}\", \"case_name\": \"Duplicate test\"}" }, "url": "{{api_base_url}}/v1/cases" }
+        },
+        {
+          "name": "List active cases",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 200', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases" }
+        },
+        {
+          "name": "Get one case",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns created case', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}" }
+        },
+        {
+          "name": "Update case",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns updated case', () => pm.response.to.have.status(200));", "pm.test('new name saved', () => pm.expect(pm.response.json().case_name).to.include('Updated'));"] } }],
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"case_name\": \"Rao v Mehta — Updated Postman Test\" }" }, "url": "{{api_base_url}}/v1/cases/{{case_uuid}}" }
+        },
+        {
+          "name": "Reject empty update",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 422', () => pm.response.to.have.status(422));"] } }],
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{api_base_url}}/v1/cases/{{case_uuid}}" }
+        },
+        {
+          "name": "Archive case",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 204', () => pm.response.to.have.status(204));"] } }],
+          "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}" }
+        },
+        {
+          "name": "List active cases after archive",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 200', () => pm.response.to.have.status(200));", "pm.test('archived case is absent', () => pm.expect(pm.response.json().some(c => c.id === pm.environment.get('case_uuid'))).to.eql(false);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases" }
+        },
+        {
+          "name": "List including archived",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns archived case', () => pm.response.to.have.status(200));", "pm.test('archived case is present', () => pm.expect(pm.response.json().some(c => c.id === pm.environment.get('case_uuid'))).to.eql(true);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases?include_archived=true" }
+        },
+        {
+          "name": "Restore case",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns restored case', () => pm.response.to.have.status(200));", "pm.test('archive timestamp cleared', () => pm.expect(pm.response.json().archived_at).to.eql(null));"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/restore" }
+        },
+        {
+          "name": "Dashboard",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns dashboard', () => pm.response.to.have.status(200));", "pm.test('has Stage 1 zero counters', () => { const m = pm.response.json().metrics; pm.expect(m.pending_tasks).to.eql(0); pm.expect(m.unresolved_issues).to.eql(0); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/dashboard" }
+        }
+      ]
+    },
+    {
+      "name": "Security checks",
+      "item": [
+        {
+          "name": "Protected route rejects missing token",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 401', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "GET", "url": "{{api_base_url}}/v1/cases" }
+        },
+        {
+          "name": "Other user cannot read this case",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('returns 404 for a case not owned by this token', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}" },
+          "description": "Sign in as a second test user first. Its access token replaces access_token; then run this request."
+        }
+      ]
+    }
+  ]
+}

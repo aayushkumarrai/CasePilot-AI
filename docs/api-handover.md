@@ -1,10 +1,10 @@
-# API Handover
+# API Handover — Stage 1
 
 Base URL: `https://<railway-service>/v1` in production and `http://localhost:8000/v1` locally.
 
 ## Authentication
 
-Every request except health uses `Authorization: Bearer <supabase-access-token>`. A missing or invalid token returns `401`. A valid token without ownership of the case returns `404` to avoid revealing the case exists.
+Every request except `GET /health` and `GET /health/ready` uses `Authorization: Bearer <supabase-access-token>`. A missing or invalid token returns `401`. A valid token without ownership of the case returns `404` to avoid revealing the case exists.
 
 ## Shared conventions
 
@@ -27,14 +27,29 @@ Every request except health uses `Authorization: Bearer <supabase-access-token>`
 }
 ```
 
-## Endpoint groups
+## Implemented endpoints
+
+These are the only endpoints available in Stage 1 and are the routes included in the Postman collection at `postman/CasePilot-AI-Stage-1.postman_collection.json`.
 
 | Method and path | Use |
 | --- | --- |
+| `GET /health` | Liveness check; does not call Supabase. |
+| `GET /health/ready` | Readiness check; verifies Supabase configuration and connectivity. |
+| `GET /me` | Current authenticated user and profile. |
 | `GET /dashboard` | Dashboard cards, recent cases, metrics, and activity. |
 | `GET /cases` | Case list. |
 | `POST /cases` | Create `{ "case_id": "PROP-001", "case_name": "Rao v Mehta" }`. Returns `201`. |
 | `GET /cases/{caseId}` | Case header and status. |
+| `PATCH /cases/{caseId}` | Change Case ID and/or case name. |
+| `DELETE /cases/{caseId}` | Soft-delete a case. Returns `204`. |
+| `POST /cases/{caseId}/restore` | Restore a soft-deleted case. |
+
+## Planned endpoints — do not integrate yet
+
+The following routes are part of later document-processing and AI stages. They are retained here as roadmap references only; calling them now returns `404`.
+
+| Method and path | Planned use |
+| --- | --- |
 | `POST /cases/{caseId}/documents/upload-url` | Request signed upload URL before direct browser upload. |
 | `POST /cases/{caseId}/documents` | Register completed upload. |
 | `GET /cases/{caseId}/documents` | Document list and statuses. |
@@ -51,52 +66,27 @@ Every request except health uses `Authorization: Bearer <supabase-access-token>`
 | `GET/POST /cases/{caseId}/chat` | Load/save case chat messages. |
 | `GET /cases/{caseId}/activity` | Case audit history. |
 
-## Key request examples
+## Stage 1 request examples
 
-### Request upload URL
-
-```json
-POST /cases/{caseId}/documents/upload-url
-{
-  "file_name": "seller-notice.pdf",
-  "content_type": "application/pdf",
-  "size_bytes": 280000
-}
-```
-
-The response provides `storage_path`, temporary `upload_url`, and `expires_in_seconds`. Upload the raw file directly to `upload_url`, then call document registration.
-
-### Register upload
+### Update a case
 
 ```json
-POST /cases/{caseId}/documents
-{
-  "file_name": "seller-notice.pdf",
-  "content_type": "application/pdf",
-  "size_bytes": 280000,
-  "storage_path": "user-id/case-id/uuid-seller-notice.pdf"
-}
+PATCH /cases/{caseId}
+{ "case_id": "PROP-002", "case_name": "Rao v Mehta Updated" }
 ```
 
-### Review an extracted field
+Both fields are optional, but the request must include at least one. A Case ID conflict with another active case owned by the same lawyer returns `409`.
+
+### Create a case
 
 ```json
-PATCH /cases/{caseId}/fields/{fieldId}
-{ "status": "confirmed", "value": "Ravi Rao" }
+POST /cases
+{ "case_id": "PROP-001", "case_name": "Rao v Mehta" }
 ```
 
-### Update task state
+The response is `201` with the internal UUID in `id`. Use that UUID as `{caseId}` in all case routes.
 
-```json
-PATCH /tasks/{taskId}
-{ "status": "approved" }
-```
+## Stage 1 frontend behavior
 
-## Frontend behavior
-
-- Disable Analyze Case when no document is registered.
-- Show processing status and poll only while a run is active.
-- Show a failed or unsupported document inside the list; do not hide it.
-- Citation buttons open the referenced document and passage/page in Documents.
 - Show API errors near the action that failed and retain unsaved form values.
 - Regenerate TypeScript types from FastAPI `/openapi.json` whenever API schemas change.

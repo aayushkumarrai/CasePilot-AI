@@ -97,7 +97,7 @@ The workspace now reads persisted results only through FastAPI: `GET /v1/cases/{
 
 ## Stage 3.6 integration status
 
-The frontend now uses FastAPI for analysis start/polling and for Overview, Timeline, Issues, Tasks, and Activity. Citations navigate to the Documents route with `document` and `passage` query parameters; extracted-text passages scroll and highlight, while PDFs show an Evidence focus notice. Chat remains deferred to Stage 5; Stage 4 field/party actions and task workflow are now implemented locally pending live migration QA.
+The frontend uses FastAPI for analysis, review, workflow, and case chat. Chat history loads on the Chat tab and persists across reloads. While sending, the question appears locally and duplicate sends are disabled. Success replaces it with the persisted pair; failure removes the temporary item and restores the draft. Evidence citations reuse Documents-route navigation.
 
 ## Upload route and native document previews
 
@@ -110,7 +110,14 @@ The Stage 3 frontend integration is complete locally. Use the dedicated `/cases/
 
 The upload card, document list, and reader share one responsive workspace alignment. Long filenames truncate in the list and expose the full name on hover. PDFs render with PDF.js in a scrollable in-app reader; DOCX files render sanitized Mammoth HTML from a temporary private URL; TXT and DOCX citations navigate to stable extracted passages.
 
-Stage 4 connects field/party review controls and task workflow routes. Preserve original AI suggestions and citations beside lawyer-reviewed values. Do not add chat submission until Stage 5.
+Stage 4 connects field/party review controls and task workflow routes. Preserve original AI suggestions and citations beside lawyer-reviewed values.
+
+## Stage 5 chat integration
+
+- Call only `GET/POST /v1/cases/{caseId}/chat`; never query chat tables or call the persistence RPC from the browser.
+- Render lawyer and assistant groups, response-type badges, persisted timestamps, and citations under evidence answers.
+- Keep the draft for retry on `401`, `404`, `422`, or `503`, and never leave a temporary message after failure.
+- Refresh case Activity after a successful exchange. Streaming, edit/delete, and chat-created tasks remain out of scope.
 
 ## Stage 4 review and task workflow
 

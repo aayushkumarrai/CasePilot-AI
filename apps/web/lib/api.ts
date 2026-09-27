@@ -73,6 +73,9 @@ export type TaskStatus = 'proposed' | 'approved' | 'done' | 'rejected'
 export type ReviewTask = { id: string; source: 'ai' | 'manual'; finding_id: string | null; title: string; description: string; status: TaskStatus; created_at: string; updated_at: string; citations: Citation[] }
 export type ReviewActivity = { id: string; action: string; actor_type: string; details: Record<string, unknown>; created_at: string }
 export type OverviewResponse = { case: CaseRecord; analysis_run: { id: string; completed_at: string | null } | null; lawyer_context: string | null; case_summary: string | null; case_summary_citations: Citation[]; document_summaries: DocumentSummary[]; fields: { pending: ReviewField[]; confirmed: ReviewField[]; rejected: ReviewField[] }; parties: ReviewParty[]; latest_issues: Finding[]; pending_tasks: ReviewTask[]; counts: { document_summaries: number; pending_fields: number; confirmed_fields: number; rejected_fields: number; parties: number; issues: number; pending_tasks: number } }
+export type ChatResponseType = 'evidence' | 'general_guidance'
+export type ChatMessage = { id: string; exchange_id: string; role: 'user' | 'assistant'; content: string; response_type: ChatResponseType | null; citations: Citation[]; created_at: string }
+export type ChatExchange = { user_message: ChatMessage; assistant_message: ChatMessage }
 
 export const workflowApi = {
   reviewField: (caseId: string, fieldId: string, payload: { action: 'confirm' | 'edit' | 'reject'; value?: string }) => apiFetch<ReviewField>(`/cases/${caseId}/fields/${fieldId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
@@ -89,6 +92,11 @@ export const analysisApi = {
   issues: (caseId: string) => apiFetch<Finding[]>(`/cases/${caseId}/issues`),
   tasks: (caseId: string) => apiFetch<ReviewTask[]>(`/cases/${caseId}/tasks`),
   activity: (caseId: string) => apiFetch<ReviewActivity[]>(`/cases/${caseId}/activity`),
+}
+
+export const chatApi = {
+  history: (caseId: string) => apiFetch<ChatMessage[]>(`/cases/${caseId}/chat`),
+  send: (caseId: string, message: string) => apiFetch<ChatExchange>(`/cases/${caseId}/chat`, { method: 'POST', body: JSON.stringify({ message }) }),
 }
 
 export const evidenceHref = (caseId: string, citation: Citation) => `/cases/${caseId}/documents?document=${citation.document_id}&passage=${citation.passage_id}`

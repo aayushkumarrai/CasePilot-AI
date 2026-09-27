@@ -15,9 +15,10 @@ CasePilot supports document organization and preparation. It does not make legal
 - Generate a case summary, pending extracted details, key parties, document summaries, timeline, issues, and tasks after the user selects **Analyze case**.
 - Review documents inside the application and inspect cited source passages.
 - Review source-linked AI fields and parties, then create and manage AI or manual follow-up tasks.
+- Ask case-scoped questions and receive either passage-cited evidence answers or clearly labeled general guidance.
 - Inspect PDFs, DOCX files, and extracted TXT passages inside the application.
 
-Stage 4 lawyer review and task workflow is verified. Case chat remains a later stage.
+Stage 5 evidence-grounded case chat is verified. Its migration, automated suites, live browser/Groq flow, persistence, citation navigation, and ownership isolation checks pass.
 
 ## Stack
 
@@ -30,11 +31,11 @@ Stage 4 lawyer review and task workflow is verified. Case chat remains a later s
 
 ## Current implementation
 
-Stages 1–4 are feature-complete locally. Stage 4 provides owner-safe lawyer review of source-linked fields and parties, manual task creation, and task workflow while preserving AI suggestions and citations.
+Stages 1–5 are verified. Stage 5 adds owner-safe immutable chat history, deterministic passage retrieval, server-only Groq answers, citation validation, and a complete browser Chat view.
 
 The browser uses FastAPI for all case, document, analysis, and review data; it never reads Supabase analysis tables or calls lifecycle RPCs directly. AI outputs are retained per completed run, and every displayed factual output is grounded in a stored document passage. A corrective Groq pass can fill clearly evidenced missing parties or core fields without treating lawyer context as evidence.
 
-Stage 4 adds lawyer field/party review actions, manual tasks, and task status transitions while retaining AI suggestions and citations. Stage 5 will add persisted evidence-grounded case chat. Stage 6 covers full end-to-end regression, deployment, and demo rehearsal.
+Successful chat exchanges persist atomically; provider or grounding failures persist nothing and restore the lawyer's draft. Stage 6 covers full end-to-end regression, deployment, and demo rehearsal.
 
 ## Documentation
 
@@ -56,7 +57,7 @@ Stage 4 adds lawyer field/party review actions, manual tasks, and task status tr
 - [Development setup](docs/development-setup.md)
 - [Deployment configuration](docs/deployment.md)
 
-The importable Stage 1 and Stage 2 Postman collections and safe environment template are in [`postman/`](postman/).
+Importable collections for Stages 1–5 and the safe environment template are in [`postman/`](postman/).
 
 ## Team
 

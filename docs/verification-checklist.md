@@ -96,9 +96,21 @@ Use this checklist on the final demo environment. Record the date, person, and e
 - [ ] Stage 4: dashboard counts proposed and approved AI/manual tasks only.
 - [ ] Stage 4: User B cannot read or mutate User A’s review records or manual tasks.
 - [ ] Approve, Reject, and Done actions persist and appear in activity history.
-- [ ] Evidence chat answer displays a valid citation.
-- [ ] General chat answer displays the required general-guidance label.
-- [ ] Chat history remains after page refresh.
+- [x] Evidence chat answer displays a valid citation.
+- [x] General chat answer displays the required general-guidance label.
+- [x] Chat history remains after page refresh.
+
+## Stage 5 — Evidence-grounded case chat
+
+- [x] Apply `20260927180000_stage5_case_chat.sql` to the linked project and pass schema lint.
+- [x] Add deterministic ready-passage retrieval, bounded history/evidence, typed Groq output, and normalized citation validation.
+- [x] Add atomic pair/citation/activity persistence and safe no-partial-save failures.
+- [x] Expose FastAPI history/send routes and connect the browser Chat view without direct Supabase access.
+- [x] Add focused backend/frontend automated tests and the Stage 5 Postman collection.
+- [x] Run a live Groq evidence answer and inspect its resolved citation.
+- [x] Run a live general-guidance answer and verify its label and absence of citations.
+- [x] Reload the browser and confirm both exchanges persist; automated UI coverage confirms failed-send draft restoration.
+- [x] Verify User B and an archived case receive `404` and cannot use the persistence RPC.
 
 ## Presentation readiness
 

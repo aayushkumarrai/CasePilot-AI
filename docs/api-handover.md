@@ -146,11 +146,14 @@ Each sourced item includes citations resolved to the document name, stable passa
 
 The Postman collection is `postman/CasePilot-AI-Stage-3.5-Review-Reads.postman_collection.json`; use an active `case_uuid` with a completed analysis run.
 
-Chat is the remaining future workflow surface:
+## Stage 5 evidence-grounded chat
 
-| Method and path | Planned use |
+| Method and path | Use |
 | --- | --- |
-| `GET/POST /cases/{caseId}/chat` | Load/save case chat messages in Stage 5. |
+| `GET /cases/{caseId}/chat` | Return the latest 100 persisted messages in chronological order with resolved citations. |
+| `POST /cases/{caseId}/chat` | Send `{ "message": "..." }`, wait for Groq, validate grounding, and return the atomically persisted pair with `201`. |
+
+Messages are trimmed and limited to 2,000 characters. Evidence answers include one to five document citations. General guidance is citation-free and begins with `General guidance — not based on case documents.` Authentication failures return `401`; absent, archived, or unowned cases return `404`; invalid input returns `422`; safe provider, output-validation, grounding, or persistence failures return `503` and save no partial exchange.
 
 ## Stage 1 request examples
 

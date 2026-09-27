@@ -117,7 +117,18 @@
 9. Confirm the missing handover acknowledgment is presented as absent only from uploaded material.
 10. Open the proposed task and its citations.
 
-Stage 4 acceptance covers field/party review, manual tasks, task transitions, original-suggestion retention, safe activity events, owner isolation, and dashboard open-task metrics. Case chat remains Stage 5.
+Stage 4 acceptance covers field/party review, manual tasks, task transitions, original-suggestion retention, safe activity events, owner isolation, and dashboard open-task metrics.
+
+## Stage 5 evidence-grounded chat
+
+- Verify deterministic keyword, phrase, and document-name ranking, ordered fallback, 20-passage/60,000-character evidence bounds, latest-20-message history, and confirmed-detail separation.
+- Verify evidence responses require one to five selected-case passage citations whose normalized quote occurs in stored content.
+- Verify general guidance has zero citations and the exact required prefix.
+- Verify provider, schema, grounding, and persistence failures create zero chat rows and return safe `503` detail.
+- Verify history returns at most 100 chronological messages with resolved document names, passage labels/pages, IDs, and quotes.
+- Verify missing auth is `401`; archived, absent, and unowned cases are `404`; blank or over-2,000-character messages are `422`.
+- Verify the Chat tab keeps history across reloads, disables duplicate sends, restores failed drafts, removes temporary messages, navigates citations, and refreshes Activity after success.
+- Run two-user RLS checks against messages, citations, and the save RPC.
 
 ## Exit rule
 

@@ -162,6 +162,8 @@ This document is the team’s working order for the hackathon. Complete each sta
 
 ## Stage 5 — Case AI Chat
 
+**Verified.** The migration and schema lint, deterministic retrieval, Groq validation, atomic persistence, public routes, frontend Chat view, automated suites, live evidence/general-guidance answers, reload persistence, citation navigation, and two-user/archived-case isolation checks passed.
+
 **Goal:** The lawyer can ask questions while CasePilot keeps conversation and evidence scoped to the current case.
 
 ### Backend subplan — Sharad

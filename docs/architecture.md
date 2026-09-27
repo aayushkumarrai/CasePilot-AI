@@ -22,7 +22,7 @@ flowchart LR
 | Supabase Auth | Email/password identity and session JWTs. |
 | Supabase Postgres | Case data, extracted evidence, analysis results, tasks, chat history, and activity history. |
 | Supabase Storage | Private original documents; browser access occurs through temporary signed URLs only. |
-| Groq API | Server-only structured extraction and case analysis through `openai/gpt-oss-20b`. Case chat is a later stage. |
+| Groq API | Server-only structured analysis and synchronous evidence-grounded chat through `openai/gpt-oss-20b`. |
 
 ## Processing lifecycle
 
@@ -36,6 +36,7 @@ flowchart LR
 8. FastAPI rejects any AI citation whose document ID, passage ID, or quoted text does not match stored evidence.
 9. FastAPI stores valid fields, summaries, events, findings, tasks, and activity events.
 10. Frontend polls analysis status and refreshes review views once the run reaches `completed`; the case status becomes `review`.
+11. Case chat ranks ready passages deterministically, adds bounded recent history and separately labeled confirmed lawyer-reviewed context, then validates Groq citations before atomically saving a successful exchange.
 
 ## Data model
 
@@ -53,7 +54,8 @@ flowchart LR
 | `findings` | Cited conflicts and gaps. |
 | `tasks` | Run-scoped AI-proposed tasks with immutable wording and citations; Stage 4 permits status changes only. |
 | `manual_tasks` | Owner-created case-scoped follow-up tasks. They have no citation or finding link and retain their own workflow state. |
-| `chat_messages` | Planned Stage 5 case-scoped conversation and citations. |
+| `chat_messages` | Immutable case-scoped user/assistant messages grouped by exchange and labeled as evidence or general guidance. |
+| `chat_message_citations` | Assistant-message links to ready stored passages with validated verbatim quotes. |
 | `activity_events` | Immutable history of AI and user actions. |
 
 ## Security rules
@@ -77,8 +79,12 @@ flowchart LR
 
 ## Current delivery status
 
-The current implementation covers the full Stage 3 read path: direct private upload, background extraction, explicit analysis, Groq structured output, evidence/citation validation, immutable persistence, polling, and source-linked review views. The Upload route owns context and analysis submission. The Documents route owns private preview and source navigation. Field/task mutations and chat are intentionally not present yet.
+The implementation covers private intake, analysis, source-linked review, lawyer review/task mutations, and synchronous case chat. The browser talks only to FastAPI. Chat sends at most 20 ready passages and 60,000 evidence characters, the latest 20 messages, and confirmed reviewed details in a non-evidence section. Reads return at most the latest 100 messages.
 
 ## Stage 4 review boundary
 
 Stage 4 never rewrites an AI field, party, task, or its normalized citations. The `case_fields` and `case_parties` review columns hold the lawyer's effective replacement and reviewer metadata separately. `manual_tasks` are case-scoped owner records with no analysis run, citation, or finding reference. Security-invoker RPCs validate the active owned case, write one change, and append a safe activity event atomically under the caller JWT.
+
+## Stage 5 chat boundary
+
+Only ready passages from the active owned case are citation sources. Conversation history and confirmed lawyer-reviewed values guide the answer in labeled non-evidence sections. Evidence responses require one to five quote-matched citations. General guidance has no citations and carries the required non-evidence prefix. The security-invoker save RPC writes both messages, citations, and one safe activity event in a single transaction.

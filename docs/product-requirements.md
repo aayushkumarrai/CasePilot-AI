@@ -17,7 +17,7 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 5. Select **Analyze case** after at least one document is ready.
 6. Review generated outputs and supporting passages; Stage 4 records lawyer confirmation, edits, rejections, and task workflow decisions separately from AI evidence.
 7. Use citations to inspect the referenced private document or extracted passage.
-8. Stage 4 is implementing field/party review actions and task workflow; Stage 5 adds case chat.
+8. Ask case questions after evidence is ready; cited answers are distinguished from general guidance.
 
 ## Delivered Stage 2 evidence foundation
 
@@ -41,7 +41,7 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 | Gaps | Use the phrase “not found in uploaded material.” Do not claim the missing record does not exist. |
 | Conflicts | Show competing accounts and their sources. Do not select one as true. |
 | Tasks | Stage 4 groups AI and manual tasks by proposed, approved, done, and rejected. AI wording remains immutable; manual wording is editable while open. |
-| Chat | Planned for Stage 5. It will persist messages by case and label evidence/general-guidance answers. |
+| Chat | Persist successful user/assistant pairs by case. Evidence answers require validated passage citations; uncited answers begin with “General guidance — not based on case documents.” |
 | Failure | Mark an unreadable/unsupported document and continue with documents that are usable. |
 
 ## Out of scope for version one
@@ -54,7 +54,7 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 
 ## Acceptance criteria
 
-Stage 3 is ready for review when a lawyer can complete the fictional property-dispute flow from case creation and upload through analysis, source inspection, and read-only review output without manual database changes. Task approval and cited case chat are later-stage acceptance criteria.
+Stage 5 is ready for final QA when chat history survives reload, evidence answers navigate to stored passages, general guidance is visibly labeled, failures restore the draft without partial persistence, and cross-user/archived access returns `404`.
 
 
 ## Current Stage 3 experience

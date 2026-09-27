@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.modules.analysis.schemas import AnalysisPrompt, AnalysisResult
+from app.modules.chat.schemas import ChatPrompt, ChatResult
 
 
 class GroqError(Exception):
@@ -45,6 +46,10 @@ class GroqInvalidOutputError(GroqError):
     safe_message = "The AI provider returned an invalid analysis result."
 
 
+class GroqInvalidChatOutputError(GroqError):
+    safe_message = "The AI provider returned an invalid chat response. Please try again."
+
+
 SYSTEM_PROMPT = """You are CasePilot AI, a legal case-preparation assistant. Return one JSON object only.
 Use only uploaded evidence for factual claims. Do not provide legal conclusions or decide which conflicting account is true.
 Preserve competing accounts as conflicts. Describe absent records only as \"not found in uploaded material.\"
@@ -65,6 +70,20 @@ Use empty arrays when an output category has no evidence-backed items:
   \"citations\": [{\"target_type\": \"case_summary|document_summary|case_field|case_party|timeline_event|finding|task\", \"target_ref\": \"case_summary or matching output ref\", \"passage_id\": \"UUID from evidence\", \"quote\": \"verbatim supporting text\"}]
 }
 Do not add fields. Include no markdown or text outside the JSON object."""
+CHAT_SYSTEM_PROMPT = """You are CasePilot AI, an evidence-grounded legal case-preparation assistant. Return one JSON object only.
+Do not provide legal conclusions, decide which conflicting account is true, or invent facts. Preserve conflicts and use "not found in uploaded material" when the supplied passages do not answer the question.
+
+Uploaded evidence is the only source that may support factual case answers or citations. Conversation history and confirmed lawyer-reviewed details provide context only; never cite them or silently use them to override uploaded evidence.
+
+If uploaded evidence answers the question, return response_type "evidence", include one to five citations, and use only supplied passage IDs. Every quote must be a verbatim substring of the cited passage.
+If uploaded evidence cannot answer the question, return response_type "general_guidance", no citations, and begin content exactly with "General guidance — not based on case documents." Explain that the answer was not found in uploaded material and suggest a record to inspect or request.
+
+Return exactly this shape with no extra fields, markdown, or text outside the JSON object:
+{
+  "response_type": "evidence|general_guidance",
+  "content": "string",
+  "citations": [{"passage_id": "UUID from uploaded evidence", "quote": "verbatim supporting text"}]
+}"""
 REQUEST_TIMEOUT = httpx.Timeout(connect=10, read=60, write=60, pool=10)
 MAX_COMPLETION_TOKENS = 8192
 
@@ -98,10 +117,28 @@ class GroqClient:
                 {"role": "user", "content": self._user_prompt(prompt)},
             ],
         }
-        headers = {
-            "Accept": "application/json",
-            "Authorization": f"Bearer {self.settings.groq_api_key}",
+        return self._parse_response(await self._request(payload))
+
+    async def answer_case_question(self, prompt: ChatPrompt) -> ChatResult:
+        if not self.settings.groq_is_configured:
+            raise GroqConfigurationError()
+        payload = {
+            "model": self.settings.groq_model,
+            "temperature": 0,
+            "max_completion_tokens": 4096,
+            "stream": False,
+            "reasoning_effort": "low",
+            "reasoning_format": "hidden",
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": CHAT_SYSTEM_PROMPT},
+                {"role": "user", "content": self._chat_user_prompt(prompt)},
+            ],
         }
+        return self._parse_chat_response(await self._request(payload))
+
+    async def _request(self, payload: dict[str, Any]) -> httpx.Response:
+        headers = {"Accept": "application/json", "Authorization": f"Bearer {self.settings.groq_api_key}"}
         for attempt in range(2):
             try:
                 response = await self._client.post(
@@ -119,7 +156,7 @@ class GroqClient:
                 raise GroqTemporaryError(f"provider returned HTTP {response.status_code}")
             if response.is_error:
                 raise GroqProviderError(response.status_code)
-            return self._parse_response(response)
+            return response
         raise GroqTemporaryError()
 
     @staticmethod
@@ -133,7 +170,25 @@ class GroqClient:
         return "\n\n".join(sections)
 
     @staticmethod
-    def _parse_response(response: httpx.Response) -> AnalysisResult:
+    def _chat_user_prompt(prompt: ChatPrompt) -> str:
+        sections = [
+            "## Uploaded evidence\n" + (prompt.uploaded_evidence or "No relevant uploaded passages were retrieved."),
+        ]
+        if prompt.history:
+            sections.append(
+                "## Recent conversation — context only, not evidence\n"
+                + "\n".join(f"{item.role}: {item.content}" for item in prompt.history)
+            )
+        if prompt.lawyer_reviewed_details:
+            sections.append(
+                "## Confirmed lawyer-reviewed details — not document evidence\n"
+                + prompt.lawyer_reviewed_details
+            )
+        sections.append("## Lawyer question\n" + prompt.question)
+        return "\n\n".join(sections)
+
+    @staticmethod
+    def _message_content(response: httpx.Response) -> str:
         try:
             payload: dict[str, Any] = response.json()
             content = payload["choices"][0]["message"]["content"]
@@ -147,6 +202,11 @@ class GroqClient:
             )
         if not isinstance(content, str) or not content.strip():
             raise GroqInvalidJsonError()
+        return content
+
+    @staticmethod
+    def _parse_response(response: httpx.Response) -> AnalysisResult:
+        content = GroqClient._message_content(response)
         try:
             result = json.loads(content)
         except json.JSONDecodeError as exc:
@@ -157,3 +217,17 @@ class GroqClient:
             return AnalysisResult.model_validate(result)
         except ValidationError as exc:
             raise GroqInvalidOutputError() from exc
+
+    @staticmethod
+    def _parse_chat_response(response: httpx.Response) -> ChatResult:
+        content = GroqClient._message_content(response)
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise GroqInvalidJsonError() from exc
+        if not isinstance(result, dict):
+            raise GroqInvalidJsonError()
+        try:
+            return ChatResult.model_validate(result)
+        except ValidationError as exc:
+            raise GroqInvalidChatOutputError() from exc

@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "CasePilot AI — Stage 5 Evidence-Grounded Chat",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run in order against an active owned case containing ready evidence. Groq remains server-only; every chat request goes through FastAPI."
+  },
+  "item": [
+    {
+      "name": "1. Supabase Sign In",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "apikey", "value": "{{supabase_anon_key}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "url": "{{supabase_url}}/auth/v1/token?grant_type=password",
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.environment.set('access_token', body.access_token);", "pm.test('Sign in succeeds', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "2. Read Chat History",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/chat" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('History loads', () => pm.response.to.have.status(200));", "pm.test('History is chronological JSON', () => pm.expect(pm.response.json()).to.be.an('array'));", "console.log(pm.response.json());"] } }]
+    },
+    {
+      "name": "3. Ask Evidence Question",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/chat",
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"What do the uploaded documents say about payment and possession?\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.test('Exchange is persisted', () => pm.response.to.have.status(201));", "pm.test('Answer is evidence grounded', () => { pm.expect(body.assistant_message.response_type).to.eql('evidence'); pm.expect(body.assistant_message.citations.length).to.be.above(0); });", "pm.environment.set('chat_user_message_uuid', body.user_message.id);", "pm.environment.set('chat_assistant_message_uuid', body.assistant_message.id);", "console.log(body);"] } }]
+    },
+    {
+      "name": "4. Ask General-Guidance Question",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/chat",
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"What is the filing deadline under a law that is not identified in these documents?\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.test('General exchange is persisted', () => pm.response.to.have.status(201));", "pm.test('Guidance is labeled and uncited', () => { pm.expect(body.assistant_message.response_type).to.eql('general_guidance'); pm.expect(body.assistant_message.content.startsWith('General guidance — not based on case documents.')).to.eql(true); pm.expect(body.assistant_message.citations).to.eql([]); });", "console.log(body);"] } }]
+    },
+    {
+      "name": "5. Reload Persisted History",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/chat" },
+      "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.test('Both exchanges survive reload', () => { pm.response.to.have.status(200); pm.expect(body.length).to.be.at.least(4); });", "pm.test('Saved evidence citation resolves document data', () => { const cited = body.find(x => x.id === pm.environment.get('chat_assistant_message_uuid')); pm.expect(cited.citations[0].document_name).to.be.a('string'); pm.expect(cited.citations[0].passage_id).to.be.a('string'); });", "console.log(body);"] } }]
+    },
+    {
+      "name": "6. Read Chat Activity",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/activity" },
+      "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.test('Chat completion activity is present', () => { pm.response.to.have.status(200); pm.expect(body.some(x => x.action === 'chat_exchange_completed')).to.eql(true); });", "console.log(body);"] } }]
+    },
+    {
+      "name": "7. Archived Case Rejection",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{archived_case_uuid}}/chat" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Archived case is hidden', () => pm.response.to.have.status(404));", "console.log(pm.response.json());"] } }]
+    },
+    {
+      "name": "8. Owner Isolation Check",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{user_b_access_token}}" }], "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/chat" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('User B cannot read User A chat', () => pm.response.to.have.status(404));", "console.log(pm.response.json());"] } }]
+    }
+  ]
+}

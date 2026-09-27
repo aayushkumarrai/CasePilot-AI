@@ -24,8 +24,9 @@ Do not include a signed handover acknowledgment. The system should flag it as no
 4. **Overview:** Show the separately labeled lawyer context, cited summary, pending details, key parties, conflict, and proposed task. Open a citation to show that every factual claim can be traced to source material.
 5. **Documents:** Select the seller notice or agreement. Show the built-in PDF/DOCX/TXT reader and, for a citation, the evidence focus/passage highlight.
 6. **Timeline and issues:** Show payment and possession-related events in chronological order. Open the possession conflict and compare seller and buyer sources. Show the missing acknowledgment wording.
-7. **Tasks and activity:** Show the read-only proposed task and safe activity timeline. Explain that approval and completion controls are the next workflow stage.
-8. **Close:** “CasePilot does not decide the case. It gives the lawyer an organized, traceable basis for review.”
+7. **Tasks and activity:** Approve or complete an AI task and show a manual follow-up task and safe activity timeline.
+8. **Case chat:** Ask what the uploaded packet says about payment and possession. Open the cited passage. Then ask a legal-deadline question absent from the packet and show the general-guidance label.
+9. **Close:** “CasePilot does not decide the case. It gives the lawyer an organized, traceable basis for review.”
 
 ## Fallback plan
 
@@ -51,3 +52,10 @@ Do not include a signed handover acknowledgment. The system should flag it as no
 4. Approve and complete an AI-proposed task.
 5. Create a manual follow-up task, edit it while open, and show it as `Manual` with no citation.
 6. Open Activity and Dashboard to show safe review events and open-task metrics.
+
+## Stage 5 case chat continuation
+
+1. Open Chat and show its persisted chronological history.
+2. Ask: “What do the uploaded documents say about payment and possession?” Show the evidence badge and open a citation in Documents.
+3. Ask a question whose answer is not in the packet. Show `General guidance — not based on case documents.` and explain that it has no evidence citation.
+4. Reload the page to show both exchanges remain. If demonstrating failure handling, interrupt the provider request and show that the draft returns without a partial history entry.

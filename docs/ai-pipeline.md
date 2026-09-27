@@ -55,9 +55,14 @@ Classify every assistant response as one of:
 
 If the evidence cannot answer the question, the assistant should say so and suggest what record to review or request.
 
+Stage 5 retrieves only ready passages for the active owned case. Ranking uses deterministic question-token overlap, phrase matching, and document-name matching; a no-match question receives the first 10 ordered passages. The request is capped at 20 passages and 60,000 evidence characters. The prompt also includes the latest 20 messages and confirmed reviewed fields/parties in a separate non-document section. Lawyer-provided upload context is not added to chat evidence.
+
+Groq returns typed JSON. Evidence citations are accepted only when the passage was retrieved for this request and the normalized quote occurs in stored passage content. A general-guidance answer must have no citations and begin with the required label. Provider, schema, grounding, or persistence failure returns a safe error and saves neither message.
+
 ## Failure handling
 
 - Unsupported type: mark document `unsupported`, show why, continue.
 - Extraction failure: mark `failed`, retain error message, allow retry, continue.
 - Groq failure or invalid JSON: mark analysis run failed with an actionable error; preserve earlier completed results.
-- Invalid citation: omit that output or mark it ungrounded for review; never display it as supported evidence.
+- Invalid analysis citation: omit that output or fail the analysis when the case summary is ungrounded.
+- Invalid chat citation: reject the complete exchange and persist nothing.

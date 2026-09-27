@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.modules.analysis.router import router as analysis_router
 from app.modules.auth.router import router as auth_router
 from app.modules.cases.router import router as cases_router
+from app.modules.chat.router import router as chat_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.documents.router import router as documents_router
 from app.modules.review.router import router as review_router
@@ -46,6 +47,7 @@ async def readiness() -> dict[str, str]:
 
 app.include_router(auth_router)
 app.include_router(cases_router)
+app.include_router(chat_router)
 app.include_router(dashboard_router)
 app.include_router(documents_router)
 app.include_router(analysis_router)

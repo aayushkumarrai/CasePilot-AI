@@ -1,8 +1,8 @@
 # Project Status
 
 **Last updated:** 2026-09-27
-**Current phase:** Stage 4 lawyer review and task workflow — Verified
-**Demo readiness:** At Risk — Stages 1–4 are verified; deployment and final rehearsal remain.
+**Current phase:** Stage 5 evidence-grounded case chat — Verified
+**Demo readiness:** At Risk — Stages 1–5 are verified; deployment and final rehearsal remain.
 
 ## Status definitions
 
@@ -27,7 +27,7 @@
 | Stage 3.5 persisted review reads | Verified | Overview, timeline, issues, tasks, and activity passed completed-run, empty-state, authentication, ownership, and archived-case QA. |
 | Stage 3.6 frontend integration | Verified | Dashboard/case flow, dedicated Upload route, signed uploads, analysis polling, review tabs, citation navigation, in-app PDF/DOCX/TXT readers, responsive layout, and the clean end-to-end browser rehearsal passed. |
 | Stage 4 lawyer review and task mutations | Verified | Migration, schema lint, backend/frontend automated checks, live Postman workflow, and ownership QA passed. |
-| Stage 5 case chat | Not Started | Implement scoped history, retrieval, evidence citations, and general-guidance labeling. |
+| Stage 5 case chat | Verified | Migration/lint, automated suites, live evidence/guidance, persistence, citations, archived-case behavior, and two-user isolation passed. |
 | Stage 6 deployment and demo regression | Not Started | Deploy Railway/Vercel, set production CORS/env, run final property-dispute rehearsal. |
 
 ## Current application behavior
@@ -38,13 +38,14 @@
 - Analysis sends context only on explicit start. Context remains a clearly labeled assertion, never document evidence.
 - Overview, Timeline, Issues, and Activity remain latest-completed-run views. Stage 4 adds review actions for fields/parties and workflow controls for AI and manual tasks. A failed rerun leaves prior completed review output visible.
 - Key parties and core fields are requested from Groq when clearly stated in evidence; a single grounded corrective pass is allowed if the first response omits them.
+- Chat ranks only ready evidence, validates every evidence quote against a retrieved passage, labels uncited general guidance, saves successful pairs atomically, and restores failed drafts in the browser.
 
 ## Environment tracker
 
 | Service | Status | Notes |
 | --- | --- | --- |
 | GitHub repository | Verified | Canonical remote: `aayushkumarrai/CasePilot-AI`. Current changes are prepared locally and await the maintainer’s commit/push. |
-| Supabase | Verified | Auth, owner RLS, private Storage, documents, passages, analysis outputs, and lifecycle schema are applied. |
+| Supabase | Verified | Auth, owner RLS, private Storage, analysis/workflow data, and the Stage 5 immutable chat schema are applied and linted. |
 | Groq | Verified | Server-only `openai/gpt-oss-20b` smoke request passed. |
 | Railway | Not Started | Deploy FastAPI and set Supabase/Groq/CORS values. |
 | Vercel | Not Started | Deploy Next.js and set browser-safe Supabase/API variables. |
@@ -56,6 +57,7 @@
 | Final fictional property-dispute packet | Needed for a credible full rehearsal | Create/select the six fictional documents named in the demo script. |
 | Deployment | Demo cannot be shown outside the local machine | Deploy Railway then Vercel; configure CORS and Supabase Auth redirects. |
 | Stage 4 review workflow | Verified | Field/party decisions, AI/manual task workflow, safe activity, dashboard metrics, and two-user ownership checks passed. |
+| Stage 5 exit checks | Verified | Live browser, Groq, reload, citation navigation, archived-case, and two-user RLS checks passed. |
 
 ## Stage 3 QA evidence — 2026-09-27
 
@@ -68,3 +70,7 @@ Update this file whenever a route, migration, UI flow, test result, or blocker c
 ## Stage 4 QA evidence — 2026-09-27
 
 Stage 4 exit checks passed: the linked migration is applied and linted; field and party confirmation/edit/rejection preserve AI suggestions and citations; AI/manual task workflows enforce valid transitions; safe activity and dashboard open-task metrics refresh correctly; Postman and ownership checks passed.
+
+## Stage 5 implementation evidence — 2026-09-27
+
+`20260927180000_stage5_case_chat.sql` is applied to the linked project and schema lint reports no errors. Focused backend and frontend tests cover retrieval, limits, typed output, citation grounding, atomic no-partial-save behavior, pending UI state, citation navigation, and draft restoration. A live fictional-case run produced a citation-grounded evidence answer and correctly labeled citation-free guidance; both exchanges survived reload and the citation opened the stored passage. Two-user and archived-case checks confirmed owner isolation and `404` behavior.

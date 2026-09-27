@@ -19,6 +19,7 @@ from app.integrations.groq_client import (
 )
 from app.main import app
 from app.modules.analysis.schemas import AnalysisPrompt, AnalysisResult
+from app.modules.chat.schemas import ChatPrompt, ChatResult
 
 
 def fixture_result() -> dict:
@@ -178,3 +179,46 @@ def test_contract_rejects_excessive_or_invalid_values() -> None:
     invalid_confidence["case_fields"][0]["confidence"] = 1.1
     with pytest.raises(ValidationError):
         AnalysisResult.model_validate(invalid_confidence)
+
+
+def test_chat_client_separates_evidence_history_and_reviewed_context() -> None:
+    passage_id = str(uuid4())
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["payload"] = json.loads(request.content)
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({
+            "response_type": "evidence",
+            "content": "The uploaded passage records payment.",
+            "citations": [{"passage_id": passage_id, "quote": "Buyer Rao paid INR 500000."}],
+        })}}]})
+
+    async def run() -> ChatResult:
+        async with httpx.AsyncClient(base_url="https://groq.test/v1", transport=httpx.MockTransport(handler)) as http_client:
+            return await GroqClient(configured_settings(), http_client).answer_case_question(ChatPrompt(
+                question="What payment is recorded?",
+                uploaded_evidence=f"Passage ID: {passage_id}\nBuyer Rao paid INR 500000.",
+                lawyer_reviewed_details="Field — Payment: INR 500000",
+                history=[{"role": "user", "content": "Earlier question"}],
+            ))
+
+    result = asyncio.run(run())
+    assert result.response_type == "evidence"
+    prompt = captured["payload"]["messages"][1]["content"]
+    assert "## Uploaded evidence" in prompt
+    assert "## Recent conversation — context only, not evidence" in prompt
+    assert "## Confirmed lawyer-reviewed details — not document evidence" in prompt
+    assert "## Lawyer question" in prompt
+    assert captured["payload"]["max_completion_tokens"] == 4096
+
+
+def test_chat_client_rejects_unlabeled_general_guidance() -> None:
+    async def run() -> None:
+        response = httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({
+            "response_type": "general_guidance", "content": "Request the missing record.", "citations": [],
+        })}}]})
+        from app.integrations.groq_client import GroqInvalidChatOutputError
+        with pytest.raises(GroqInvalidChatOutputError):
+            GroqClient._parse_chat_response(response)
+
+    asyncio.run(run())

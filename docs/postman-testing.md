@@ -66,3 +66,7 @@ Import `postman/CasePilot-AI-Stage-3.5-Review-Reads.postman_collection.json` wit
 ## Stage 4 review workflow
 
 Import `CasePilot-AI-Stage-4-Review-Workflow.postman_collection.json` and the local environment. Run the ordered requests against an active case with a completed analysis run that has at least one pending field, party, and AI task. The collection saves record IDs from Overview, then demonstrates field confirmation, party editing, manual task creation/editing, AI task approval/completion, manual task approval, activity, and dashboard metrics.
+
+## Stage 5 case chat
+
+Import `CasePilot-AI-Stage-5-Case-Chat.postman_collection.json` and the local environment. Set `case_uuid` to an active owned case with ready evidence. Run sign-in, history, evidence question, general-guidance question, persisted reload, and activity in order. Set `archived_case_uuid` for the archived-case check. Obtain a separate User B token in an unshared environment for the owner-isolation check. Groq credentials remain only on the backend.

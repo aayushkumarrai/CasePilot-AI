@@ -117,7 +117,7 @@
 9. Confirm the missing handover acknowledgment is presented as absent only from uploaded material.
 10. Open the proposed task and its citations.
 
-Field editing, task approval/completion, and case chat are Stage 4/5 acceptance cases and are not part of the Stage 3 end-to-end run.
+Stage 4 acceptance covers field/party review, manual tasks, task transitions, original-suggestion retention, safe activity events, owner isolation, and dashboard open-task metrics. Case chat remains Stage 5.
 
 ## Exit rule
 
@@ -134,3 +134,13 @@ Verify in a browser: a ready document enables Analyze Case; context is sent only
 ## Upload route, previews, and extraction correction
 
 Verify Create Case routes to Upload; ready documents enable explicit analysis; completion routes to Overview; ready PDFs render through PDF.js; ready DOCX files render sanitized Mammoth HTML; expired preview URLs can be refreshed; and a property-dispute rerun returns citation-grounded Rao/Mehta parties and payment/possession fields. Confirm an unavailable corrective Groq call preserves the first grounded result.
+
+## Stage 4 lawyer workflow
+
+- Confirm, edit, and reject fields and parties; assert original AI values and citations remain unchanged.
+- Verify rejected fields and parties cannot be changed again.
+- Create, edit, approve, reject, and complete manual tasks; reject invalid and terminal transitions.
+- Verify AI task text edits return `422`, while valid AI status transitions succeed.
+- Verify activity records only IDs/action metadata, never lawyer replacements, prompts, context, or provider data.
+- Verify User B receives `404` for User A's fields, parties, AI tasks, manual tasks, and workflow RPCs.
+- Verify dashboard counts proposed and approved AI/manual tasks only.

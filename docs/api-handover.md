@@ -53,7 +53,7 @@ The ordered maintainer verification path for all implemented work through Stage 
 | `GET /cases/{caseId}/overview` | Latest completed analysis overview, current lawyer context, grouped fields, parties, cited summaries, issues, proposed tasks, and counts. |
 | `GET /cases/{caseId}/timeline` | Latest completed run timeline, chronologically sorted with citations. |
 | `GET /cases/{caseId}/issues` | Latest completed conflicts and gaps with citations. |
-| `GET /cases/{caseId}/tasks` | Latest completed AI tasks with citations; read-only in Stage 3.5. |
+| `GET /cases/{caseId}/tasks` | Latest completed AI tasks plus case-scoped manual tasks, with source, workflow status, and citations for AI tasks only. |
 | `GET /cases/{caseId}/activity` | Latest 50 safe activity events for the case. |
 
 ## Stage 2 document upload flow
@@ -146,14 +146,11 @@ Each sourced item includes citations resolved to the document name, stable passa
 
 The Postman collection is `postman/CasePilot-AI-Stage-3.5-Review-Reads.postman_collection.json`; use an active `case_uuid` with a completed analysis run.
 
-The following routes remain planned for Stage 4 and later:
+Chat is the remaining future workflow surface:
 
 | Method and path | Planned use |
 | --- | --- |
-| `PATCH /cases/{caseId}/fields/{fieldId}` | Confirm, reject, or edit an extracted field. |
-| `GET/POST /cases/{caseId}/tasks` | Create manually entered task. |
-| `PATCH /tasks/{taskId}` | Edit text or set task state. |
-| `GET/POST /cases/{caseId}/chat` | Load/save case chat messages. |
+| `GET/POST /cases/{caseId}/chat` | Load/save case chat messages in Stage 5. |
 
 ## Stage 1 request examples
 
@@ -186,7 +183,7 @@ The public analysis command accepts optional lawyer context. It is trimmed, limi
 
 ## Stage 3.6 dashboard metrics
 
-`GET /dashboard` now counts `pending_tasks` as proposed tasks and `unresolved_issues` as findings from the latest completed analysis run for each active owned case. Historic runs and queued, processing, or failed reruns do not affect either metric.
+`GET /dashboard` counts `pending_tasks` as proposed and approved AI tasks from the latest completed run plus proposed and approved manual tasks. `unresolved_issues` remains findings from the latest completed analysis run. Historic runs and queued, processing, or failed reruns do not affect either metric.
 
 ## Dedicated upload and document previews
 
@@ -196,4 +193,31 @@ New cases navigate to `/cases/{caseId}/upload`. That frontend route owns documen
 
 The current frontend is integrated with every implemented Stage 3 route. Case creation routes to `/cases/{caseId}/upload`; that route is the only place that uploads evidence, edits lawyer-provided context, and starts analysis. Completion routes to Overview. Documents is a reading-only evidence destination with PDF.js PDF preview, sanitized Mammoth DOCX preview, and stable TXT/DOCX passage navigation.
 
-No field, party, or task mutation route exists yet. The frontend renders these Stage 3 outputs as review-only data.
+Stage 4 adds field/party review actions and task workflow controls. The frontend preserves the original AI suggestion and its citations next to any lawyer-reviewed value; only manual task wording is editable.
+
+## Stage 4 lawyer review and task workflow
+
+Stage 4 keeps analysis outputs and citations immutable. Lawyer decisions are separate review values; activity events contain record IDs and action metadata only. All workflow routes require ownership of an active case. Missing authentication returns `401`; absent, archived, or unowned records return `404`; invalid review input or status transitions return `422`.
+
+| Method and path | Use |
+| --- | --- |
+| `PATCH /cases/{caseId}/fields/{fieldId}` | Confirm, edit, or reject a latest-run AI field. An edit requires `value`. |
+| `PATCH /cases/{caseId}/parties/{partyId}` | Confirm, edit, or reject a latest-run AI party. An edit requires `name` and/or `role`. |
+| `POST /cases/{caseId}/tasks` | Create an owner-scoped manual task in `proposed` state. Returns `201`. |
+| `PATCH /tasks/{taskId}` | Transition any task, or edit title/description for an open manual task only. |
+
+```json
+PATCH /cases/{caseId}/fields/{fieldId}
+{ "action": "edit", "value": "INR 475000" }
+```
+
+The response includes `suggested_value`, nullable `reviewed_value`, and effective `value`. Party responses similarly expose suggested and reviewed name/role. A rejected field or party is terminal.
+
+```json
+POST /cases/{caseId}/tasks
+{ "title": "Obtain bank statement", "description": "Request the buyer's statement for 10 June 2026." }
+```
+
+Task status flow is `proposed → approved`, `proposed → rejected`, and `approved → done`. Done and rejected tasks are terminal. AI task wording is immutable; manual task wording may be edited while proposed or approved. `GET /cases/{caseId}/tasks` returns current latest-run AI tasks plus all manual tasks, with `source: "ai" | "manual"`; only AI tasks have citations. `GET /dashboard` counts proposed and approved tasks from both sources as open work.
+
+Use `postman/CasePilot-AI-Stage-4-Review-Workflow.postman_collection.json` after importing `postman/CasePilot-AI-Local.postman_environment.json`.

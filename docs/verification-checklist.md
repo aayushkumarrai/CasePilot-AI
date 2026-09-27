@@ -90,7 +90,11 @@ Use this checklist on the final demo environment. Record the date, person, and e
 ## Tasks and chat
 
 - [ ] AI-proposed task begins as Proposed.
-- [ ] Manual task creation works.
+- [ ] Stage 4: manual task creation works, including a source label and no citation.
+- [ ] Stage 4: fields and parties can be confirmed, edited, or rejected while retaining the original AI suggestion and citations.
+- [ ] Stage 4: valid task transitions work; terminal statuses and invalid transitions return `422`.
+- [ ] Stage 4: dashboard counts proposed and approved AI/manual tasks only.
+- [ ] Stage 4: User B cannot read or mutate User A’s review records or manual tasks.
 - [ ] Approve, Reject, and Done actions persist and appear in activity history.
 - [ ] Evidence chat answer displays a valid citation.
 - [ ] General chat answer displays the required general-guidance label.
@@ -121,3 +125,10 @@ Use this checklist on the final demo environment. Record the date, person, and e
 - [x] Verify a failed analysis rerun preserves existing review output.
 - [x] Verify review-route empty state, `401`, and cross-user/archived `404` behavior.
 - [x] Verify dashboard task and issue counts use latest completed output only.
+
+## Stage 4 — Lawyer review and task workflow
+
+- [x] Apply `20260927170000_stage4_lawyer_review_workflow.sql` through the linked Supabase project and run schema lint.
+- [x] Run `CasePilot-AI-Stage-4-Review-Workflow.postman_collection.json` against an owned case with completed analysis.
+- [x] Run two-user RLS verification for fields, parties, manual tasks, workflow RPCs, and activity.
+- [x] Complete browser QA for review actions, task grouping, manual task edits, activity refresh, and dashboard metrics.

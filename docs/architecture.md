@@ -51,7 +51,8 @@ flowchart LR
 | `analysis_citations` | Normalized output-to-passage citation links; case-summary citations attach directly to an analysis run, while other citations attach to their run-scoped output row. Document metadata is derived through the cited passage. |
 | `timeline_events` | Cited chronological events. |
 | `findings` | Cited conflicts and gaps. |
-| `tasks` | Run-scoped AI-proposed tasks; manual tasks and workflow mutations are Stage 4. |
+| `tasks` | Run-scoped AI-proposed tasks with immutable wording and citations; Stage 4 permits status changes only. |
+| `manual_tasks` | Owner-created case-scoped follow-up tasks. They have no citation or finding link and retain their own workflow state. |
 | `chat_messages` | Planned Stage 5 case-scoped conversation and citations. |
 | `activity_events` | Immutable history of AI and user actions. |
 
@@ -77,3 +78,7 @@ flowchart LR
 ## Current delivery status
 
 The current implementation covers the full Stage 3 read path: direct private upload, background extraction, explicit analysis, Groq structured output, evidence/citation validation, immutable persistence, polling, and source-linked review views. The Upload route owns context and analysis submission. The Documents route owns private preview and source navigation. Field/task mutations and chat are intentionally not present yet.
+
+## Stage 4 review boundary
+
+Stage 4 never rewrites an AI field, party, task, or its normalized citations. The `case_fields` and `case_parties` review columns hold the lawyer's effective replacement and reviewer metadata separately. `manual_tasks` are case-scoped owner records with no analysis run, citation, or finding reference. Security-invoker RPCs validate the active owned case, write one change, and append a safe activity event atomically under the caller JWT.

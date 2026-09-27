@@ -62,3 +62,7 @@ Request 20 exercises the existing Supabase persistence lifecycle with a fixture 
 ## Stage 3.5 persisted review reads
 
 Import `postman/CasePilot-AI-Stage-3.5-Review-Reads.postman_collection.json` with the local environment. Set `case_uuid` to an active case whose Stage 3.4 run has completed. Run Sign In, then Overview, Timeline, Issues, Tasks, and Activity in that order. The collection verifies the FastAPI response shapes and source-linked citations without direct reads from Supabase analysis tables.
+
+## Stage 4 review workflow
+
+Import `CasePilot-AI-Stage-4-Review-Workflow.postman_collection.json` and the local environment. Run the ordered requests against an active case with a completed analysis run that has at least one pending field, party, and AI task. The collection saves record IDs from Overview, then demonstrates field confirmation, party editing, manual task creation/editing, AI task approval/completion, manual task approval, activity, and dashboard metrics.

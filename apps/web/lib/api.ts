@@ -65,13 +65,21 @@ export type Citation = { document_id: string; document_name: string; passage_id:
 export type AnalysisRun = { id: string; status: 'queued' | 'processing' | 'completed' | 'failed'; started_at: string | null; completed_at: string | null; error_message: string | null }
 export type AnalysisStatus = { run: AnalysisRun | null; has_completed_outputs: boolean }
 export type DocumentSummary = { id: string; document_id: string; document_name: string; summary: string; citations: Citation[] }
-export type ReviewField = { id: string; field_key: string; label: string; value: string; status: 'pending' | 'confirmed' | 'rejected'; citations: Citation[] }
-export type ReviewParty = { id: string; name: string; role: string; status: 'pending' | 'confirmed' | 'rejected'; citations: Citation[] }
+export type ReviewField = { id: string; field_key: string; label: string; suggested_value: string; reviewed_value: string | null; value: string; status: 'pending' | 'confirmed' | 'rejected'; reviewed_at: string | null; citations: Citation[] }
+export type ReviewParty = { id: string; suggested_name: string; suggested_role: string; reviewed_name: string | null; reviewed_role: string | null; name: string; role: string; status: 'pending' | 'confirmed' | 'rejected'; reviewed_at: string | null; citations: Citation[] }
 export type TimelineEvent = { id: string; event_date_text: string; date_confidence: 'exact' | 'month' | 'year' | 'unknown'; title: string; description: string; citations: Citation[] }
 export type Finding = { id: string; kind: 'conflict' | 'gap'; title: string; description: string; citations: Citation[] }
-export type ReviewTask = { id: string; finding_id: string | null; title: string; description: string; status: string; citations: Citation[] }
+export type TaskStatus = 'proposed' | 'approved' | 'done' | 'rejected'
+export type ReviewTask = { id: string; source: 'ai' | 'manual'; finding_id: string | null; title: string; description: string; status: TaskStatus; created_at: string; updated_at: string; citations: Citation[] }
 export type ReviewActivity = { id: string; action: string; actor_type: string; details: Record<string, unknown>; created_at: string }
 export type OverviewResponse = { case: CaseRecord; analysis_run: { id: string; completed_at: string | null } | null; lawyer_context: string | null; case_summary: string | null; case_summary_citations: Citation[]; document_summaries: DocumentSummary[]; fields: { pending: ReviewField[]; confirmed: ReviewField[]; rejected: ReviewField[] }; parties: ReviewParty[]; latest_issues: Finding[]; pending_tasks: ReviewTask[]; counts: { document_summaries: number; pending_fields: number; confirmed_fields: number; rejected_fields: number; parties: number; issues: number; pending_tasks: number } }
+
+export const workflowApi = {
+  reviewField: (caseId: string, fieldId: string, payload: { action: 'confirm' | 'edit' | 'reject'; value?: string }) => apiFetch<ReviewField>(`/cases/${caseId}/fields/${fieldId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  reviewParty: (caseId: string, partyId: string, payload: { action: 'confirm' | 'edit' | 'reject'; name?: string; role?: string }) => apiFetch<ReviewParty>(`/cases/${caseId}/parties/${partyId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  createManualTask: (caseId: string, payload: { title: string; description: string }) => apiFetch<ReviewTask>(`/cases/${caseId}/tasks`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateTask: (taskId: string, payload: { status?: 'approved' | 'rejected' | 'done'; title?: string; description?: string }) => apiFetch<ReviewTask>(`/tasks/${taskId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+}
 
 export const analysisApi = {
   start: (caseId: string, payload: { lawyer_context: string | null }) => apiFetch<AnalysisRun>(`/cases/${caseId}/analysis`, { method: 'POST', body: JSON.stringify(payload) }),

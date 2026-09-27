@@ -1,0 +1,370 @@
+{
+  "info": {
+    "name": "CasePilot AI \u2014 Stage 4 Review Workflow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run against an active case with a completed analysis containing at least one pending field, pending party, and proposed AI task. The collection uses FastAPI only."
+  },
+  "item": [
+    {
+      "name": "1. Supabase Sign In",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "apikey",
+            "value": "{{supabase_anon_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{supabase_url}}/auth/v1/token?grant_type=password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.environment.set('access_token', body.access_token);",
+              "pm.test('Sign in succeeds', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Read Review Items",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/overview"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Overview succeeds', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Completed analysis has pending review data', () => { pm.expect(body.fields.pending.length).to.be.above(0); pm.expect(body.parties.length).to.be.above(0); pm.expect(body.pending_tasks.length).to.be.above(0); });",
+              "pm.environment.set('field_uuid', body.fields.pending[0].id);",
+              "pm.environment.set('party_uuid', body.parties.find(p => p.status === 'pending').id);",
+              "pm.environment.set('ai_task_uuid', body.pending_tasks.find(t => t.source === 'ai').id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Confirm Field",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/fields/{{field_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"confirm\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Field confirmation succeeds', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Original AI value remains available', () => { pm.expect(body.status).to.eql('confirmed'); pm.expect(body).to.have.property('suggested_value'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Edit Party Role",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/parties/{{party_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"edit\",\n  \"role\": \"Purchaser\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Party edit succeeds', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Suggested and reviewed roles remain separate', () => { pm.expect(body.status).to.eql('confirmed'); pm.expect(body).to.have.property('suggested_role'); pm.expect(body).to.have.property('reviewed_role'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Create Manual Task",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/tasks",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Request certified payment record\",\n  \"description\": \"Ask the buyer for the bank-certified payment record.\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Manual task is created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Task is manual and proposed', () => { pm.expect(body.source).to.eql('manual'); pm.expect(body.status).to.eql('proposed'); });",
+              "pm.environment.set('manual_task_uuid', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Edit Manual Task",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/tasks/{{manual_task_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Ask the buyer for the bank-certified payment record and confirmation of receipt.\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Manual task edit succeeds', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Approve AI Task",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/tasks/{{ai_task_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"approved\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('AI task approval succeeds', () => pm.response.to.have.status(200));",
+              "pm.test('AI task stays source-linked', () => pm.expect(pm.response.json().source).to.eql('ai'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Complete AI Task",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/tasks/{{ai_task_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"done\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('AI task completion succeeds', () => pm.response.to.have.status(200));",
+              "pm.test('Task is done', () => pm.expect(pm.response.json().status).to.eql('done'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Approve Manual Task",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/tasks/{{manual_task_uuid}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"approved\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Manual task approval succeeds', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. List Grouped Tasks",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/tasks"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Task list succeeds', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Manual task is returned without citations', () => { const manual = body.find(t => t.id === pm.environment.get('manual_task_uuid')); pm.expect(manual.source).to.eql('manual'); pm.expect(manual.citations).to.eql([]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Read Activity",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/cases/{{case_uuid}}/activity"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Activity succeeds', () => pm.response.to.have.status(200));",
+              "const actions = pm.response.json().map(item => item.action);",
+              "pm.test('Workflow decisions are recorded', () => { pm.expect(actions).to.include('field_confirmed'); pm.expect(actions).to.include('manual_task_created'); pm.expect(actions).to.include('task_completed'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Dashboard Open-Task Metric",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{api_base_url}}/v1/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Dashboard succeeds', () => pm.response.to.have.status(200));",
+              "pm.test('Pending task metric is numeric', () => pm.expect(pm.response.json().metrics.pending_tasks).to.be.a('number'));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

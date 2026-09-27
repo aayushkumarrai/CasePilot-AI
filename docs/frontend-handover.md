@@ -12,17 +12,18 @@ Use a professional legal workspace: calm neutral surfaces, high contrast text, r
 | `/dashboard` | Case list, metrics, activity, Create Case | `GET /dashboard`, `GET /cases` |
 | `/cases/new` | Case ID and case name form | `POST /cases` |
 | `/cases/:caseId/overview` | Summary, case fields, parties, quick issues/tasks | `GET /overview` |
-| `/cases/:caseId/documents` | Upload, list, preview, summary, source passage | Document endpoints |
+| `/cases/:caseId/upload` | Upload, lawyer context, analysis start | Document + analysis endpoints |
+| `/cases/:caseId/documents` | List, preview, summary, source passage | Document endpoints |
 | `/cases/:caseId/timeline` | Cited event list | `GET /timeline` |
 | `/cases/:caseId/issues` | Conflicts and gaps | `GET /issues` |
-| `/cases/:caseId/tasks` | Read-only proposed AI tasks | `GET /tasks` |
+| `/cases/:caseId/tasks` | AI/manual task workflow groups | `GET /tasks`, `POST /tasks`, `PATCH /tasks/{taskId}` |
 | `/cases/:caseId/chat` | Saved case conversation | Chat endpoints |
 
 `/cases` is intentionally not a standalone screen. It redirects to `/dashboard`, which is the only case-list page.
 
 ## Shared case shell
 
-Render the Case ID, case name, status badge, document count, Analyze Case button, and navigation tabs on every case route. Keep selected tab state in the route, not component-only state.
+Render the Case ID, case name, status badge, document count, and navigation tabs on workspace routes. The Upload route is the only place that submits analysis; its header should stay focused on evidence intake.
 
 ## Page requirements
 
@@ -41,7 +42,7 @@ Render the Case ID, case name, status badge, document count, Analyze Case button
 
 ### Documents
 
-- Upload drop zone and file picker with 50-file/50-MB validation before upload.
+- The dedicated Upload route owns the upload drop zone and file picker with 50-file/50-MB validation before upload.
 - Place an optional **Lawyer-provided context** textarea beside the multi-file upload controls. Limit it to 4,000 characters and show: “Add relevant background, questions, or facts provided by the lawyer. This is not document evidence.”
 - Keep upload and analysis separate: upload first; enable **Analyze Case** only after at least one document is ready; send the current context only when analysis starts.
 - **Stage 3.4:** send the textarea value only through `POST /cases/{caseId}/analysis`. Use the returned run metadata, then poll `GET /cases/{caseId}/analysis` every 2–3 seconds while status is `queued` or `processing`. Do not send context to upload or document endpoints.
@@ -70,7 +71,7 @@ Render the Case ID, case name, status badge, document count, Analyze Case button
 
 - Columns or grouped lists for Proposed, Approved, Done, and Rejected.
 - AI tasks show source finding; manual tasks show Manual source.
-- Edit is available before/during approval. Mark Done only after approval.
+- AI task wording remains read-only. Manual task title/description may be edited while proposed or approved. Mark Done only after approval.
 - Every status transition refreshes activity history.
 
 ### AI Chat
@@ -96,7 +97,7 @@ The workspace now reads persisted results only through FastAPI: `GET /v1/cases/{
 
 ## Stage 3.6 integration status
 
-The frontend now uses FastAPI for analysis start/polling and for Overview, Timeline, Issues, Tasks, and Activity. Citations navigate to the Documents route with `document` and `passage` query parameters; extracted-text passages scroll and highlight, while PDFs show an Evidence focus notice. Chat and task/field actions remain deferred to Stages 4–5.
+The frontend now uses FastAPI for analysis start/polling and for Overview, Timeline, Issues, Tasks, and Activity. Citations navigate to the Documents route with `document` and `passage` query parameters; extracted-text passages scroll and highlight, while PDFs show an Evidence focus notice. Chat remains deferred to Stage 5; Stage 4 field/party actions and task workflow are now implemented locally pending live migration QA.
 
 ## Upload route and native document previews
 
@@ -109,4 +110,10 @@ The Stage 3 frontend integration is complete locally. Use the dedicated `/cases/
 
 The upload card, document list, and reader share one responsive workspace alignment. Long filenames truncate in the list and expose the full name on hover. PDFs render with PDF.js in a scrollable in-app reader; DOCX files render sanitized Mammoth HTML from a temporary private URL; TXT and DOCX citations navigate to stable extracted passages.
 
-Stage 3 views are read-only: do not add field confirmation, task status controls, manual task creation, or chat submission until their Stage 4/5 backend routes exist.
+Stage 4 connects field/party review controls and task workflow routes. Preserve original AI suggestions and citations beside lawyer-reviewed values. Do not add chat submission until Stage 5.
+
+## Stage 4 review and task workflow
+
+Use FastAPI only. Call `workflowApi.reviewField` and `workflowApi.reviewParty` for `confirm`, `edit`, and `reject`; retain and display the AI suggestion beside a lawyer replacement. Rejected review items are terminal.
+
+Render Tasks in Proposed, Approved, Done, and Rejected groups. A manual task is created through `workflowApi.createManualTask` and displays a `Manual` label without a citation. AI tasks display their citations and may only transition status. Manual tasks may edit title/description while proposed or approved. After each successful mutation, refresh overview, tasks, activity, and dashboard metrics.

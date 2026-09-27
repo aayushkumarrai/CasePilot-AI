@@ -258,7 +258,7 @@ Do not begin a substage until its predecessor exit check passes. Update [Project
 
 ## 3.5 — Persisted review read APIs
 
-Implemented read-only FastAPI routes for overview, timeline, issues, tasks, and activity. They select the latest completed run only, resolve normalized citations to stored document passages, and return explicit empty states before a completion. Lawyer-provided context is returned separately from evidence. Field and task mutations remain Stage 4.
+Implemented read APIs for overview, timeline, issues, tasks, and activity. They select the latest completed run only, resolve normalized citations to stored document passages, and return explicit empty states before a completion. Lawyer-provided context is returned separately from evidence. Stage 4 now layers lawyer review and task workflow mutations on top without changing the Stage 3 outputs or citations.
 
 
 ## Implementation status — 2026-09-27

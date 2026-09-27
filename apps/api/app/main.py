@@ -8,6 +8,7 @@ from app.modules.cases.router import router as cases_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.documents.router import router as documents_router
 from app.modules.review.router import router as review_router
+from app.modules.workflow.router import router as workflow_router
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0")
@@ -49,3 +50,4 @@ app.include_router(dashboard_router)
 app.include_router(documents_router)
 app.include_router(analysis_router)
 app.include_router(review_router)
+app.include_router(workflow_router)

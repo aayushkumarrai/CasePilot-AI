@@ -42,3 +42,12 @@ Do not include a signed handover acknowledgment. The system should flag it as no
 4. Open Timeline, Issues, and Tasks to show cited persisted review output.
 5. Select a citation to open the matching document and highlighted passage. For PDFs, show the Evidence focus notice and the source quote.
 6. Return to Dashboard and show that pending-task and unresolved-issue metrics reflect the latest completed run.
+
+## Stage 4 lawyer workflow continuation
+
+1. Open the completed fictional property-dispute case.
+2. Confirm the grounded payment field and edit a party role if clarification is needed; show the AI suggestion remains visible.
+3. Reject an unsupported extracted field.
+4. Approve and complete an AI-proposed task.
+5. Create a manual follow-up task, edit it while open, and show it as `Manual` with no citation.
+6. Open Activity and Dashboard to show safe review events and open-task metrics.

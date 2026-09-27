@@ -35,16 +35,24 @@ class ReviewFieldResponse(BaseModel):
     id: UUID
     field_key: str
     label: str
+    suggested_value: str
+    reviewed_value: str | None = None
     value: str
     status: Literal["pending", "confirmed", "rejected"]
+    reviewed_at: datetime | None = None
     citations: list[CitationResponse] = Field(default_factory=list)
 
 
 class ReviewPartyResponse(BaseModel):
     id: UUID
+    suggested_name: str
+    suggested_role: str
+    reviewed_name: str | None = None
+    reviewed_role: str | None = None
     name: str
     role: str
     status: Literal["pending", "confirmed", "rejected"]
+    reviewed_at: datetime | None = None
     citations: list[CitationResponse] = Field(default_factory=list)
 
 
@@ -67,10 +75,13 @@ class FindingResponse(BaseModel):
 
 class ReviewTaskResponse(BaseModel):
     id: UUID
+    source: Literal["ai", "manual"]
     finding_id: UUID | None = None
     title: str
     description: str
-    status: str
+    status: Literal["proposed", "approved", "done", "rejected"]
+    created_at: datetime
+    updated_at: datetime
     citations: list[CitationResponse] = Field(default_factory=list)
 
 

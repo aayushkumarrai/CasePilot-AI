@@ -62,11 +62,11 @@ class ReviewRepository:
     async def outputs(self, run_id: UUID) -> dict[str, list[dict[str, Any]]]:
         selects = {
             "document_summaries": "id,analysis_run_id,document_id,summary,created_at",
-            "case_fields": "id,analysis_run_id,field_key,label,value,status,created_at",
-            "case_parties": "id,analysis_run_id,name,role,status,created_at",
+            "case_fields": "id,analysis_run_id,field_key,label,value,reviewed_value,status,reviewed_at,created_at",
+            "case_parties": "id,analysis_run_id,name,role,reviewed_name,reviewed_role,status,reviewed_at,created_at",
             "timeline_events": "id,analysis_run_id,event_date_text,date_confidence,title,description,created_at",
             "findings": "id,analysis_run_id,kind,title,description,created_at",
-            "tasks": "id,analysis_run_id,finding_id,title,description,status,created_at",
+            "tasks": "id,analysis_run_id,finding_id,title,description,status,created_at,updated_at",
         }
         try:
             result: dict[str, list[dict[str, Any]]] = {}
@@ -90,7 +90,7 @@ class ReviewRepository:
             for run in runs or []:
                 parties = await self.gateway.select(
                     "case_parties",
-                    {"select": "id,analysis_run_id,name,role,status,created_at", "analysis_run_id": f"eq.{run['id']}", "order": "created_at.asc"},
+                    {"select": "id,analysis_run_id,name,role,reviewed_name,reviewed_role,status,reviewed_at,created_at", "analysis_run_id": f"eq.{run['id']}", "order": "created_at.asc"},
                 )
                 if parties:
                     return list(parties)
@@ -186,6 +186,16 @@ class ReviewRepository:
                 "documents", {"select": "id,file_name", "id": "in.(" + ",".join(document_ids) + ")"}
             )
             return {str(row["id"]): row["file_name"] for row in rows or []}
+        except SupabaseError as exc:
+            raise unavailable() from exc
+
+    async def manual_tasks(self, case_id: UUID) -> list[dict[str, Any]]:
+        try:
+            rows = await self.gateway.select(
+                "manual_tasks",
+                {"select": "id,case_id,title,description,status,created_at,updated_at", "case_id": f"eq.{case_id}", "order": "created_at.asc"},
+            )
+            return list(rows or [])
         except SupabaseError as exc:
             raise unavailable() from exc
 

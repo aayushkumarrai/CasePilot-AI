@@ -14,10 +14,10 @@ CasePilot supports document organization and preparation. It does not make legal
 - Upload up to 50 PDF, DOCX, or TXT documents, each up to 50 MB.
 - Generate a case summary, pending extracted details, key parties, document summaries, timeline, issues, and tasks after the user selects **Analyze case**.
 - Review documents inside the application and inspect cited source passages.
-- Read source-linked pending extracted details, parties, timelines, issues, and proposed tasks.
+- Review source-linked AI fields and parties, then create and manage AI or manual follow-up tasks.
 - Inspect PDFs, DOCX files, and extracted TXT passages inside the application.
 
-Field review actions, task workflow changes, and case chat are planned for later stages.
+Stage 4 lawyer review and task workflow is verified. Case chat remains a later stage.
 
 ## Stack
 
@@ -30,11 +30,11 @@ Field review actions, task workflow changes, and case chat are planned for later
 
 ## Current implementation
 
-Stages 1–3 are feature-complete locally. A signed-in lawyer can create and archive cases, upload private PDF/DOCX/TXT evidence, read documents in the app, add optional lawyer-provided context, explicitly start Groq-backed analysis, and review source-linked summaries, fields, parties, timelines, issues, proposed tasks, and activity.
+Stages 1–4 are feature-complete locally. Stage 4 provides owner-safe lawyer review of source-linked fields and parties, manual task creation, and task workflow while preserving AI suggestions and citations.
 
 The browser uses FastAPI for all case, document, analysis, and review data; it never reads Supabase analysis tables or calls lifecycle RPCs directly. AI outputs are retained per completed run, and every displayed factual output is grounded in a stored document passage. A corrective Groq pass can fill clearly evidenced missing parties or core fields without treating lawyer context as evidence.
 
-Stage 4 will add lawyer field-review and task workflow mutations. Stage 5 will add persisted evidence-grounded case chat. Stage 6 covers full end-to-end regression, deployment, and demo rehearsal.
+Stage 4 adds lawyer field/party review actions, manual tasks, and task status transitions while retaining AI suggestions and citations. Stage 5 will add persisted evidence-grounded case chat. Stage 6 covers full end-to-end regression, deployment, and demo rehearsal.
 
 ## Documentation
 

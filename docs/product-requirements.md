@@ -15,9 +15,9 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 3. Upload PDF, DOCX, or TXT documents.
 4. Optionally add lawyer-provided context beside the upload controls.
 5. Select **Analyze case** after at least one document is ready.
-6. Review generated outputs and supporting passages in read-only Stage 3 views.
+6. Review generated outputs and supporting passages; Stage 4 records lawyer confirmation, edits, rejections, and task workflow decisions separately from AI evidence.
 7. Use citations to inspect the referenced private document or extracted passage.
-8. Continue to Stage 4 for field/task actions and Stage 5 for case chat.
+8. Stage 4 is implementing field/party review actions and task workflow; Stage 5 adds case chat.
 
 ## Delivered Stage 2 evidence foundation
 
@@ -40,7 +40,7 @@ The prototype serves one signed-in lawyer. Each user owns and can access only th
 | Context boundary | Lawyer-provided context cannot support factual claims, receive document citations, resolve conflicts, or become a confirmed extracted detail without supporting uploaded evidence. |
 | Gaps | Use the phrase “not found in uploaded material.” Do not claim the missing record does not exist. |
 | Conflicts | Show competing accounts and their sources. Do not select one as true. |
-| Tasks | Stage 3 displays source-linked AI-proposed tasks as read-only. User-created tasks and status changes are Stage 4. |
+| Tasks | Stage 4 groups AI and manual tasks by proposed, approved, done, and rejected. AI wording remains immutable; manual wording is editable while open. |
 | Chat | Planned for Stage 5. It will persist messages by case and label evidence/general-guidance answers. |
 | Failure | Mark an unreadable/unsupported document and continue with documents that are usable. |
 

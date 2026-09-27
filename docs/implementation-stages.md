@@ -251,4 +251,4 @@ Connect the browser only to FastAPI analysis and review routes, including analys
 
 Stage 3 is feature-complete locally. The backend accepts an explicit analysis command, runs Groq server-side in a background task, validates all citations against stored passages, persists immutable run-scoped outputs, and exposes polling plus read-only review APIs. The frontend now uses those FastAPI APIs end-to-end: case creation opens a dedicated Upload page; analysis completion opens Overview; citations open the appropriate private document reader; and PDF, DOCX, and TXT evidence can be inspected in-app.
 
-Stage 3 final QA passed on 2026-09-27, including the browser journey, source navigation, rerun preservation, review-route ownership/empty states, and dashboard metrics. Stage 4 is the next implementation stage.
+Stage 3 final QA passed on 2026-09-27, including the browser journey, source navigation, rerun preservation, review-route ownership/empty states, and dashboard metrics. Stage 4 is verified: the migration is applied, schema lint and automated checks pass, and live Postman, browser workflow, and two-user RLS QA confirm the owner-safe review and task workflow.

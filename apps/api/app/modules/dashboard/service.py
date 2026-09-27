@@ -33,10 +33,14 @@ async def get_dashboard(gateway: SupabaseGateway, user: CurrentUser) -> Dashboar
             run_ids = [str(run["id"]) for run in latest_by_case.values()]
             if run_ids:
                 run_filter = "in.(" + ",".join(run_ids) + ")"
-                tasks = await gateway.select("tasks", {"select": "id", "analysis_run_id": run_filter, "status": "eq.proposed"})
+                tasks = await gateway.select("tasks", {"select": "id", "analysis_run_id": run_filter, "status": "in.(proposed,approved)"})
                 findings = await gateway.select("findings", {"select": "id", "analysis_run_id": run_filter})
                 pending_tasks = len(tasks or [])
                 unresolved_issues = len(findings or [])
+            manual_tasks = await gateway.select(
+                "manual_tasks", {"select": "id", "case_id": case_filter, "status": "in.(proposed,approved)"}
+            )
+            pending_tasks += len(manual_tasks or [])
         except SupabaseError as exc:
             raise unavailable() from exc
     metrics = DashboardMetrics(

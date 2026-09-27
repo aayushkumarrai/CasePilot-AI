@@ -1,35 +1,46 @@
-# Deployment Configuration
+# Railway Deployment Preparation
 
-## Frontend — Vercel
+CasePilot deploys as two Railway services from this monorepo. The repository contains separate production Dockerfiles for the FastAPI backend and Next.js frontend. Preparing these files does not create services or trigger a deployment.
 
-Import the GitHub repository in Vercel and set the **Root Directory** to `apps/web`. Vercel detects the Next.js application and uses `pnpm build` automatically.
+## Service setup
 
-Set these environment variables in Vercel for **Preview** and **Production** before deploying:
+Create one Railway project with two services connected to this repository and branch:
+
+| Service | Root directory | `RAILWAY_DOCKERFILE_PATH` | Health check | Watch paths |
+| --- | --- | --- | --- | --- |
+| `casepilot-api` | `/` | `/apps/api/Dockerfile` | `/health/ready` | `/apps/api/**` |
+| `casepilot-web` | `/` | `/apps/web/Dockerfile` | `/signin` | `/apps/web/**`, `/package.json`, `/pnpm-lock.yaml`, `/pnpm-workspace.yaml` |
+
+Keep the root directory at `/` for both services. The frontend build needs the root `pnpm-lock.yaml` and workspace files. Set the Dockerfile path as a Railway service variable, and configure the health check and watch paths under each service's settings. Use an on-failure restart policy with at most three retries.
+
+New Railway services cannot opt into the deprecated `railway.toml` configuration flow. The table above is the service-setting manifest to apply in Railway; the Dockerfiles remain versioned with the application.
+
+Generate a public Railway domain for both services before setting cross-service variables. Do not set `PORT`; Railway injects it and both images bind to it.
+
+## Frontend service
+
+Set these variables on `casepilot-web` before its first deployment:
 
 ```env
+RAILWAY_DOCKERFILE_PATH=/apps/web/Dockerfile
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<Supabase anon or publishable key>
-NEXT_PUBLIC_API_BASE_URL=https://<railway-api-domain>/v1
+NEXT_PUBLIC_API_BASE_URL=https://${{casepilot-api.RAILWAY_PUBLIC_DOMAIN}}/v1
 ```
 
-`NEXT_PUBLIC_*` values are embedded in the browser build. The Supabase anonymous key is acceptable here because it is restricted by Supabase Row Level Security. Never configure a service-role key, database password, Groq key, or Railway credential in Vercel frontend variables.
+If Railway does not expand a reference inside the URL, enter the generated backend URL explicitly, including `https://` and the `/v1` suffix.
 
-After the first Vercel deployment, add its deployed URL in Supabase Auth **URL Configuration** as the Site URL and an allowed redirect URL. Add the Vercel preview URL too if preview authentication is required.
+`NEXT_PUBLIC_*` values are embedded during `next build`. Changing them requires a frontend redeployment. The Supabase anonymous key is browser-safe because database access is protected by RLS. Never configure a service-role key, database password, Groq key, or Railway credential on the frontend service.
 
-## Backend — Railway
+## Backend service
 
-Create a Railway service from the same repository with the root directory `apps/api`. Use this start command:
-
-```bash
-uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-Set these Railway variables:
+Set these variables on `casepilot-api` before its first deployment:
 
 ```env
+RAILWAY_DOCKERFILE_PATH=/apps/api/Dockerfile
 APP_ENV=production
 APP_NAME=CasePilot API
-ALLOWED_ORIGINS=https://<vercel-production-domain>,https://<vercel-preview-domain>
+ALLOWED_ORIGINS=https://${{casepilot-web.RAILWAY_PUBLIC_DOMAIN}}
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<Supabase anon or publishable key>
 GROQ_API_KEY=<Groq API key>
@@ -37,10 +48,37 @@ GROQ_MODEL=openai/gpt-oss-20b
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 ```
 
-`GROQ_API_KEY` and `GROQ_MODEL` are required for server-only analysis and case chat. `GROQ_BASE_URL` defaults to Groq's OpenAI-compatible endpoint. Do not set any Groq value in Vercel or another browser-visible environment. Stage 3.4 analysis uses FastAPI in-process background tasks, so deploy a single Railway application process for the hackathon; durable queues and cross-process job recovery are deferred. Stage 5 chat is synchronous and can wait through one provider retry, so keep Railway's request timeout above the client's 60-second read timeout plus retry overhead.
+If Railway does not expand the URL reference, enter the generated frontend origin explicitly with `https://` and no trailing path. Add `http://localhost:3000` as a comma-separated second origin only when a local frontend must call the deployed API.
 
-Use the deployed Railway URL as `NEXT_PUBLIC_API_BASE_URL` in Vercel, then redeploy the frontend. Public frontend values are fixed during the Next.js build, so an environment change needs a new Vercel deployment.
+`GROQ_API_KEY` and `GROQ_MODEL` are required for server-only analysis and case chat. Never expose Groq values to the frontend. Analysis uses FastAPI in-process background tasks, so run one backend replica for this hackathon. Chat is synchronous and can include one provider retry.
+
+## Supabase Auth configuration
+
+After Railway assigns the frontend domain, set it as the Supabase Auth Site URL and add these redirect URLs:
+
+```text
+https://<casepilot-web-domain>/**
+http://localhost:3000/**
+```
+
+Keep the localhost redirect only while local development is needed.
+
+## Deployment order and smoke checks
+
+1. Create both services and generate their public domains.
+2. Add backend and frontend variables without committing any secret values.
+3. Deploy `casepilot-api` and wait for `/health/ready` to pass.
+4. Deploy `casepilot-web`; its public API URL is embedded during the build.
+5. Update Supabase Auth URLs.
+6. Verify:
+   - `GET https://<api-domain>/health` returns `status: ok` and `environment: production`.
+   - `GET https://<api-domain>/health/ready` returns `status: ready`.
+   - `https://<web-domain>/signin` loads over HTTPS.
+   - Sign-in, dashboard, upload, analysis, review workflow, evidence chat, and sign-out work in the deployed browser app.
+   - Browser requests have no CORS errors and no secret backend values appear in the frontend bundle.
+
+The readiness health check deliberately verifies Supabase connectivity. A backend deployment remains unhealthy until `SUPABASE_URL` and `SUPABASE_ANON_KEY` are correct.
 
 ## Local environment
 
-Create `apps/web/.env.local` from `apps/web/.env.example`. It contains only browser-safe Supabase and API values and is ignored by Git. Keep the backend credentials in `apps/api/.env`.
+Create `apps/web/.env.local` from `apps/web/.env.example`. It contains only browser-safe Supabase and API values and is ignored by Git. Keep backend credentials in `apps/api/.env`. Never copy either local environment file into Railway source control; enter production values through Railway Variables.

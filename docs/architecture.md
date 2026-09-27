@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  W[Next.js web app on Vercel] -->|Supabase Auth token| A[FastAPI on Railway]
+  W[Next.js web app on Railway] -->|Supabase Auth token| A[FastAPI on Railway]
   W -->|private upload via signed URL| S[Supabase Storage]
   A --> P[Supabase Postgres]
   A --> S
@@ -72,8 +72,8 @@ flowchart LR
 
 ## Deployment
 
-- Deploy `apps/web` to Vercel with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_API_BASE_URL`.
-- Deploy FastAPI to Railway with Supabase credentials, Groq credentials, and `ALLOWED_ORIGINS` set to the Vercel URL.
+- Deploy `apps/web` as the `casepilot-web` Railway service with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_API_BASE_URL`.
+- Deploy FastAPI as the `casepilot-api` Railway service with Supabase credentials, Groq credentials, and `ALLOWED_ORIGINS` set to the Railway frontend origin.
 - Run Supabase migrations before deploying the API.
 
 

@@ -28,7 +28,7 @@
 | Stage 3.6 frontend integration | Verified | Dashboard/case flow, dedicated Upload route, signed uploads, analysis polling, review tabs, citation navigation, in-app PDF/DOCX/TXT readers, responsive layout, and the clean end-to-end browser rehearsal passed. |
 | Stage 4 lawyer review and task mutations | Verified | Migration, schema lint, backend/frontend automated checks, live Postman workflow, and ownership QA passed. |
 | Stage 5 case chat | Verified | Migration/lint, automated suites, live evidence/guidance, persistence, citations, archived-case behavior, and two-user isolation passed. |
-| Stage 6 deployment and demo regression | Not Started | Deploy Railway/Vercel, set production CORS/env, run final property-dispute rehearsal. |
+| Stage 6 deployment and demo regression | Ready to Deploy | Railway Dockerfiles and the two-service settings manifest are prepared; deployment, production variables, Auth redirects, and final rehearsal remain. |
 
 ## Current application behavior
 
@@ -47,15 +47,15 @@
 | GitHub repository | Verified | Canonical remote: `aayushkumarrai/CasePilot-AI`. Current changes are prepared locally and await the maintainer’s commit/push. |
 | Supabase | Verified | Auth, owner RLS, private Storage, analysis/workflow data, and the Stage 5 immutable chat schema are applied and linted. |
 | Groq | Verified | Server-only `openai/gpt-oss-20b` smoke request passed. |
-| Railway | Not Started | Deploy FastAPI and set Supabase/Groq/CORS values. |
-| Vercel | Not Started | Deploy Next.js and set browser-safe Supabase/API variables. |
+| Railway backend | Prepared | FastAPI Dockerfile, service settings, readiness check, and server-only variable contract are ready; no service has been deployed. |
+| Railway frontend | Prepared | Next.js Dockerfile, service settings, health check, and browser-safe variable contract are ready; no service has been deployed. |
 
 ## Remaining blockers and next actions
 
 | Item | Impact | Next action |
 | --- | --- | --- |
 | Final fictional property-dispute packet | Needed for a credible full rehearsal | Create/select the six fictional documents named in the demo script. |
-| Deployment | Demo cannot be shown outside the local machine | Deploy Railway then Vercel; configure CORS and Supabase Auth redirects. |
+| Deployment | Demo cannot be shown outside the local machine | Deploy the Railway API and web services; configure CORS, service variables, and Supabase Auth redirects. |
 | Stage 4 review workflow | Verified | Field/party decisions, AI/manual task workflow, safe activity, dashboard metrics, and two-user ownership checks passed. |
 | Stage 5 exit checks | Verified | Live browser, Groq, reload, citation navigation, archived-case, and two-user RLS checks passed. |
 

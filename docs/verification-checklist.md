@@ -62,7 +62,7 @@ Use this checklist on the final demo environment. Record the date, person, and e
 - [ ] Supabase Auth email/password flow works.
 - [ ] Supabase Storage bucket is private.
 - [ ] Railway API health endpoint returns success.
-- [ ] Vercel uses the deployed Railway API URL.
+- [ ] The Railway frontend build uses the deployed Railway API URL ending in `/v1`.
 - [ ] Groq key is present on Railway only and never in frontend environment variables.
 
 ## Case flow

@@ -14,10 +14,10 @@ This document is the team’s working order for the hackathon. Complete each sta
 2. **Supabase project** — Sharad
    - Create the project, enable email/password Auth, create the private `case-documents` Storage bucket, and apply owner-only RLS rules.
    - Store project URL and anonymous key in the frontend environment; store service credentials only in Railway/FastAPI.
-3. **Application scaffolds** — Aayush and Sharad
+3. **Application scaffolds** — Srujan, Aayush, and Sharad
    - Create Next.js/React/TypeScript/Tailwind and FastAPI projects in the agreed monorepo paths.
    - Add local environment examples and health checks.
-4. **API contract freeze** — Sharad, Akshata, Aayush
+4. **API contract freeze** — Sharad, Srujan, Akshata, Aayush
    - Review [API Handover](api-handover.md) together.
    - Freeze response shapes for case, document, citation, field, task, timeline event, finding, and chat message before frontend integration.
 
@@ -42,7 +42,7 @@ This document is the team’s working order for the hackathon. Complete each sta
 3. Enforce unique Case ID for each owner.
 4. Add activity event when a case is created.
 
-### Frontend subplan — Aayush and Akshata
+### Frontend subplan — Srujan, Aayush, and Akshata
 
 1. Build sign-up, sign-in, sign-out, and protected-route behavior.
 2. Build dashboard loading, empty, error, and ready states.
@@ -198,14 +198,14 @@ This document is the team’s working order for the hackathon. Complete each sta
 1. **Backend tests** — Sharad
    - Execute all API scenarios from [Test Plan](test-plan.md).
    - Test ownership, limits, document failure continuation, citations, field review, task lifecycle, and chat labels.
-2. **Frontend tests** — Aayush and Akshata
+2. **Frontend tests** — Srujan, Aayush, and Akshata
    - Test all loading, empty, error, processing, and ready states.
    - Verify source navigation, task state changes, and chat rendering.
 3. **Integration run** — Team
    - Run the end-to-end property-dispute scenario on one shared preview environment.
    - Fix API mismatches before visual polishing.
-4. **Deployment** — Sharad, Aayush, Akshata
-   - Deploy FastAPI to Railway and Next.js to Vercel.
+4. **Deployment** — Sharad, Srujan, Aayush, Akshata
+   - Deploy FastAPI and Next.js as separate Railway services.
    - Set CORS and production environment variables.
 
 ### Exit checks

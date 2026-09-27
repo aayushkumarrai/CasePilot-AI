@@ -87,6 +87,7 @@ Every data view needs loading, empty, error, and ready states. Documents and ana
 
 ## Ownership
 
+- Srujan: frontend lead, UI design, and base frontend foundation.
 - Akshata: auth, case creation, upload, document reader, citation navigation.
 - Aayush: dashboard, case shell, overview, timeline, issues, tasks, chat.
 - Sharad: API contract, backend status semantics, Supabase integration, and integration support.

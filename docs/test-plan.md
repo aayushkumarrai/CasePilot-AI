@@ -3,8 +3,8 @@
 ## Test environments
 
 - **Local:** FastAPI test server, test Supabase project or isolated schema, frontend development server.
-- **Preview:** Vercel preview connected to a Railway staging service and Supabase staging project.
-- **Demo:** production-style Vercel/Railway/Supabase configuration with fictional documents only.
+- **Preview:** Railway frontend and backend services connected to a Supabase staging project.
+- **Demo:** production-style Railway/Supabase configuration with fictional documents only.
 
 ## Automated backend tests
 

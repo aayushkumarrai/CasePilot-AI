@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { FieldCard, PartyCard, TasksPage } from '@/components/casepilot-app'
+import { FieldCard, PartyCard, TasksPage, isPartyField } from '@/components/casepilot-app'
 import type { ReviewField, ReviewParty, ReviewTask } from '@/lib/api'
 
 const citation = { document_id: 'doc-1', document_name: 'evidence.txt', passage_id: 'passage-1', passage_label: 'Passage 1', page_number: null, quote: 'Buyer Rao paid INR 500000.' }
@@ -13,6 +13,12 @@ const tasks: ReviewTask[] = [
 ]
 
 describe('Stage 4 review workflow UI', () => {
+  it('classifies legacy buyer and seller fields as key parties', () => {
+    expect(isPartyField({ ...field, field_key: 'buyer', label: 'Buyer' })).toBe(true)
+    expect(isPartyField({ ...field, field_key: 'seller_name', label: 'Seller name' })).toBe(true)
+    expect(isPartyField({ ...field, field_key: 'payment_amount', label: 'Payment amount' })).toBe(false)
+  })
+
   it('sends a field confirmation and retains its cited AI suggestion', () => {
     const onAction = vi.fn().mockResolvedValue(undefined)
     render(<FieldCard caseId="case-1" item={field} onAction={onAction} busy={false} />)

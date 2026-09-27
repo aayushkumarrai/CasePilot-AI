@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 from collections import defaultdict
 from uuid import UUID
 
 from fastapi import BackgroundTasks, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.core.config import Settings
 from app.core.dependencies import CurrentUser
 from app.core.errors import unavailable
-from app.integrations.groq_client import GroqClient, GroqError
+from app.integrations.groq_client import GroqClient, GroqError, GroqInvalidJsonError, GroqInvalidOutputError
 from app.integrations.supabase_gateway import SupabaseError, SupabaseGateway
 
 from .repository import AnalysisRepository
@@ -26,6 +27,7 @@ from .schemas import (
 )
 
 MAX_EVIDENCE_CHARS = 180_000
+logger = logging.getLogger(__name__)
 
 
 class EvidenceTooLarge(Exception):
@@ -75,6 +77,15 @@ class ValidatedAnalysisResult(BaseModel):
 
     def completion_payload(self) -> dict:
         data = self.result.model_dump(mode="json")
+        # A provider may return a useful set of individually grounded outputs
+        # while failing to ground its prose case summary. Persist those useful
+        # outputs, but never store or display the unsupported summary. The RPC
+        # converts this empty value to SQL null.
+        summary_is_grounded = any(
+            citation["target_type"] == "case_summary"
+            and citation["target_ref"] == CASE_SUMMARY_REF
+            for citation in data["citations"]
+        )
         for field_name in (
             "document_summaries",
             "case_fields",
@@ -86,7 +97,7 @@ class ValidatedAnalysisResult(BaseModel):
             for item in data[field_name]:
                 item.pop("confidence", None)
         return {
-            "p_case_summary": data["case_summary"],
+            "p_case_summary": data["case_summary"] if summary_is_grounded else "",
             "p_document_summaries": data["document_summaries"],
             "p_case_fields": data["case_fields"],
             "p_case_parties": data["case_parties"],
@@ -147,7 +158,13 @@ class EvidenceAssembler:
 
 
 class CitationValidator:
-    def validate(self, result: AnalysisResult, bundle: EvidenceBundle) -> ValidatedAnalysisResult:
+    def validate(
+        self,
+        result: AnalysisResult,
+        bundle: EvidenceBundle,
+        *,
+        require_case_summary: bool = True,
+    ) -> ValidatedAnalysisResult:
         passages = {
             passage.id: passage
             for document in bundle.documents
@@ -162,9 +179,14 @@ class CitationValidator:
                 summary = next((item for item in result.document_summaries if item.ref == citation.target_ref), None)
                 if not summary or passages[citation.passage_id].document_id != summary.document_id:
                     continue
-            citations_by_target[(citation.target_type, citation.target_ref)].append(citation)
+            target = (citation.target_type, citation.target_ref)
+            # Provider output may repeat or over-supply otherwise valid
+            # citations. Persistence supports at most five per output, so keep
+            # the provider's first five grounded citations deterministically.
+            if len(citations_by_target[target]) < 5:
+                citations_by_target[target].append(citation)
 
-        if not citations_by_target.get(("case_summary", CASE_SUMMARY_REF)):
+        if require_case_summary and not citations_by_target.get(("case_summary", CASE_SUMMARY_REF)):
             raise GroundingValidationError()
 
         document_summaries = [
@@ -183,7 +205,6 @@ class CitationValidator:
         ]
 
         kept_refs = {
-            ("case_summary", CASE_SUMMARY_REF),
             *[("document_summary", item.ref) for item in document_summaries],
             *[("case_field", item.ref) for item in case_fields],
             *[("case_party", item.ref) for item in case_parties],
@@ -191,21 +212,36 @@ class CitationValidator:
             *[("finding", item.ref) for item in findings],
             *[("task", item.ref) for item in tasks],
         }
-        citations = [
-            citation for citation in result.citations
-            if (citation.target_type, citation.target_ref) in kept_refs
-            and citation in citations_by_target[(citation.target_type, citation.target_ref)]
-        ]
-        validated = AnalysisResult(
-            case_summary=result.case_summary,
-            document_summaries=document_summaries,
-            case_fields=case_fields,
-            case_parties=case_parties,
-            timeline_events=timeline_events,
-            findings=findings,
-            tasks=tasks,
-            citations=citations,
-        )
+        if citations_by_target.get(("case_summary", CASE_SUMMARY_REF)):
+            kept_refs.add(("case_summary", CASE_SUMMARY_REF))
+        citations: list[Citation] = []
+        retained_counts: dict[tuple[str, str], int] = defaultdict(int)
+        for citation in result.citations:
+            target = (citation.target_type, citation.target_ref)
+            if target not in kept_refs:
+                continue
+            retained = citations_by_target[target]
+            position = retained_counts[target]
+            if position < len(retained) and citation == retained[position]:
+                citations.append(citation)
+                retained_counts[target] += 1
+        try:
+            validated = AnalysisResult(
+                case_summary=result.case_summary,
+                document_summaries=document_summaries,
+                case_fields=case_fields,
+                case_parties=case_parties,
+                timeline_events=timeline_events,
+                findings=findings,
+                tasks=tasks,
+                citations=citations,
+            )
+        except ValidationError as exc:
+            logger.error(
+                "Grounded analysis validation failed: %s",
+                exc.errors(include_input=False),
+            )
+            raise
         return ValidatedAnalysisResult(result=validated)
 
 
@@ -276,39 +312,205 @@ async def process_analysis(
         )
         if not processing:
             return
-        result = await client.analyze_case(bundle.prompt)
+        try:
+            result = await client.analyze_case(bundle.prompt)
+        except (GroqInvalidJsonError, GroqInvalidOutputError):
+            result = await client.analyze_case(
+                bundle.prompt,
+                "SCHEMA REGENERATION: The previous response could not be validated. Return exactly the required JSON object shape, "
+                "with valid enum values, unique refs, valid UUIDs copied from evidence, arrays within their limits, and citations that target existing refs. "
+                "Do not include markdown or any text outside the JSON object.",
+            )
         validator = CitationValidator()
-        validated = validator.validate(result, bundle)
-        if _needs_corrective_retry(validated.result, bundle):
+        # Keep every independently grounded output even if the provider's case
+        # summary citation is missing or invalid. completion_payload omits the
+        # unsupported summary before persistence.
+        validated = validator.validate(result, bundle, require_case_summary=False)
+        missing_categories = _missing_supported_categories(validated.result, bundle)
+        if missing_categories:
             try:
                 corrected = await client.analyze_case(
                     bundle.prompt,
-                    "CORRECTIVE PASS: The supplied evidence contains explicit parties and/or material facts that were omitted. Return the complete JSON shape again, including every missing grounded case_party and case_field with valid passage citations. Do not invent anything.",
+                    "CORRECTIVE PASS: The first grounded result omitted evidence-supported output categories: "
+                    + ", ".join(sorted(missing_categories))
+                    + ". Return the complete JSON shape again. The arrays for those specifically named categories MUST be non-empty because the uploaded evidence contains explicit support. "
+                    "For timeline_events, extract every material dated act. For findings, capture disputed acceptance, possession, performance, competing accounts, and expressly missing records. "
+                    "For tasks, propose a grounded lawyer-review or record-verification action and link it to a finding when applicable. "
+                    "Populate all other categories only where the uploaded evidence explicitly supports them. "
+                    "Every item must have a citation whose quote is an exact verbatim substring of the supplied passage. "
+                    "Include grounded review tasks for supported conflicts or missing records. Do not invent anything.",
                 )
-                candidate = validator.validate(corrected, bundle)
-                if not _needs_corrective_retry(candidate.result, bundle):
-                    validated = candidate
-            except Exception:
+                candidate = validator.validate(
+                    corrected,
+                    bundle,
+                    require_case_summary=False,
+                )
+                validated = ValidatedAnalysisResult(
+                    result=_merge_grounded_results(validated.result, candidate.result)
+                )
+                remaining = _missing_supported_categories(validated.result, bundle)
+                logger.info(
+                    "Analysis corrective pass retained counts fields=%d parties=%d timeline=%d findings=%d tasks=%d remaining_categories=%d",
+                    len(validated.result.case_fields),
+                    len(validated.result.case_parties),
+                    len(validated.result.timeline_events),
+                    len(validated.result.findings),
+                    len(validated.result.tasks),
+                    len(remaining),
+                )
+            except Exception as exc:
                 # A valid first response is retained when the optional correction cannot improve it.
-                pass
+                logger.warning(
+                    "Analysis corrective pass was discarded after %s",
+                    type(exc).__name__,
+                )
+        validated = ValidatedAnalysisResult(result=_ensure_grounded_tasks(validated.result))
         await gateway.rpc(
             "complete_analysis_run_with_outputs",
             {"p_analysis_run_id": analysis_run_id, **validated.completion_payload()},
         )
     except Exception as exc:
+        # Record only the exception type. Analysis inputs, provider output,
+        # lawyer context, and credentials must never enter application logs.
+        logger.error(
+            "Analysis run %s failed with %s",
+            analysis_run_id,
+            type(exc).__name__,
+        )
         await _fail_analysis(gateway, analysis_run_id, _safe_analysis_error(exc))
     finally:
         await client.close()
         await gateway.close()
 
 
-
-def _needs_corrective_retry(result: AnalysisResult, bundle: EvidenceBundle) -> bool:
-    """Request one correction only when the uploaded evidence clearly has omitted categories."""
+def _missing_supported_categories(result: AnalysisResult, bundle: EvidenceBundle) -> set[str]:
+    """Identify empty categories that the uploaded evidence clearly supports."""
     evidence = bundle.prompt.uploaded_evidence.casefold()
     party_signal = bool(re.search(r"\b(buyer|seller|landlord|tenant|plaintiff|defendant|vendor|purchaser)\b", evidence))
     field_signal = bool(re.search(r"\b(inr|rs\.?|payment|paid|possession|property|agreement|handover|keys?)\b", evidence))
-    return (party_signal and not result.case_parties) or (field_signal and not result.case_fields)
+    date_signal = bool(
+        re.search(
+            r"\b(?:19|20)\d{2}\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b",
+            evidence,
+        )
+    )
+    finding_signal = bool(
+        re.search(
+            r"\b(dispute[ds]?|conflict(?:ing)?|contradict(?:s|ed|ory)?|missing|absent|not found|no signed|no record|"
+            r"did not accept|refus(?:e|ed|al)|den(?:y|ied)|declin(?:e|ed)|failed to|delay(?:ed)?|requested inspection|"
+            r"remains? pending|not delivered|not received)\b",
+            evidence,
+        )
+    )
+    missing: set[str] = set()
+    if len(result.document_summaries) < len(bundle.documents):
+        missing.add("document_summaries")
+    if party_signal and not result.case_parties:
+        missing.add("case_parties")
+    if field_signal and not result.case_fields:
+        missing.add("case_fields")
+    if date_signal and not result.timeline_events:
+        missing.add("timeline_events")
+    if finding_signal and not result.findings:
+        missing.add("findings")
+    if (finding_signal or result.findings or result.case_fields or result.case_parties) and not result.tasks:
+        missing.add("tasks")
+    return missing
+
+
+def _needs_corrective_retry(result: AnalysisResult, bundle: EvidenceBundle) -> bool:
+    """Compatibility wrapper used by tests and callers that need a boolean."""
+    return bool(_missing_supported_categories(result, bundle))
+
+
+def _merge_grounded_results(primary: AnalysisResult, correction: AnalysisResult) -> AnalysisResult:
+    """Fill empty categories from a grounded correction without erasing valid first-pass output."""
+    category_targets = {
+        "document_summaries": "document_summary",
+        "case_fields": "case_field",
+        "case_parties": "case_party",
+        "timeline_events": "timeline_event",
+        "findings": "finding",
+        "tasks": "task",
+    }
+    selected: dict[str, list] = {}
+    selected_refs: dict[str, set[str]] = {"case_summary": {CASE_SUMMARY_REF}}
+    source_for_target: dict[str, AnalysisResult] = {"case_summary": primary}
+    for category, target_type in category_targets.items():
+        primary_items = list(getattr(primary, category))
+        correction_items = list(getattr(correction, category))
+        correction_is_better = (
+            category == "document_summaries"
+            and len(correction_items) > len(primary_items)
+        )
+        source = correction if correction_is_better or not primary_items else primary
+        items = correction_items if correction_is_better or not primary_items else primary_items
+        selected[category] = items
+        selected_refs[target_type] = {item.ref for item in items}
+        source_for_target[target_type] = source
+
+    # A correction task may refer to an equivalent correction finding that was
+    # not selected because the first pass already had findings. The task still
+    # has its own grounded citation, so retain it without the stale link.
+    selected["tasks"] = [
+        task if task.finding_ref is None or task.finding_ref in selected_refs["finding"]
+        else task.model_copy(update={"finding_ref": None})
+        for task in selected["tasks"]
+    ]
+    selected_refs["task"] = {item.ref for item in selected["tasks"]}
+
+    citations: list[Citation] = []
+    for target_type, refs in selected_refs.items():
+        source = source_for_target[target_type]
+        citations.extend(
+            citation
+            for citation in source.citations
+            if citation.target_type == target_type and citation.target_ref in refs
+        )
+    return AnalysisResult(
+        case_summary=primary.case_summary,
+        citations=citations,
+        **selected,
+    )
+
+
+def _ensure_grounded_tasks(result: AnalysisResult) -> AnalysisResult:
+    """Create review actions for grounded findings when the provider omitted tasks."""
+    if result.tasks or not result.findings:
+        return result
+    data = result.model_dump(mode="json")
+    # Provider output can contain a citation for a task that it then omitted
+    # from the tasks array. Drop every stale task citation before adding the
+    # deterministic grounded review tasks below.
+    citations: list[dict] = [
+        citation for citation in data["citations"]
+        if citation["target_type"] != "task"
+    ]
+    tasks: list[dict] = []
+    for index, finding in enumerate(data["findings"], start=1):
+        ref = f"grounded_review_task_{index}"
+        finding_citations = [
+            citation for citation in data["citations"]
+            if citation["target_type"] == "finding" and citation["target_ref"] == finding["ref"]
+        ]
+        if not finding_citations:
+            continue
+        tasks.append(
+            {
+                "ref": ref,
+                "finding_ref": finding["ref"],
+                "title": f"Review {finding['title']}",
+                "description": "Review the cited evidence and record the appropriate lawyer follow-up.",
+            }
+        )
+        citations.extend(
+            {**citation, "target_type": "task", "target_ref": ref}
+            for citation in finding_citations
+        )
+    data["tasks"] = tasks
+    data["citations"] = citations
+    return AnalysisResult.model_validate(data)
+
 
 def _safe_analysis_error(exc: Exception) -> str:
     if isinstance(exc, GroqError):

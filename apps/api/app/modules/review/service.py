@@ -58,9 +58,9 @@ async def _review_data(gateway: SupabaseGateway, user: CurrentUser, case_id: UUI
     if not run:
         return repository, case, None, {}, [], {}
     outputs = await repository.outputs(UUID(str(run["id"])))
-    # A narrow later run can omit parties. Keep the newest cited extraction visible.
-    if not outputs["case_parties"]:
-        outputs["case_parties"] = await repository.latest_available_parties(case_id)
+    # A narrow later run can omit an otherwise grounded category. Keep the
+    # newest persisted output for each section visible without mutating runs.
+    outputs = await repository.fill_missing_outputs(case_id, outputs)
     summary_citations, citations = await repository.resolve_citations(UUID(str(run["id"])), outputs)
     return repository, case, run, outputs, summary_citations, citations
 

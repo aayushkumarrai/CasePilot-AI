@@ -163,6 +163,39 @@ def test_analysis_starts_completes_and_polls_without_context_leak(monkeypatch) -
     app.dependency_overrides.clear()
 
 
+def test_analysis_keeps_grounded_outputs_when_case_summary_is_unsupported(monkeypatch) -> None:
+    user = CurrentUser(id=uuid4(), email="lawyer@example.com", access_token="token")
+    gateway = AnalysisGateway(user)
+    result = valid_result(gateway).model_copy(deep=True)
+    result.citations[0] = result.citations[0].model_copy(
+        update={"quote": "This text is not present in the uploaded evidence."}
+    )
+    FakeGroqClient.result, FakeGroqClient.error = result, None
+    settings = Settings(
+        supabase_url="https://supabase.test",
+        supabase_anon_key="anon",
+        groq_api_key="key",
+        groq_model="model",
+    )
+
+    with TestClient(app) as client:
+        configure(client, gateway, settings, monkeypatch)
+        started = client.post(f"/v1/cases/{gateway.case_id}/analysis", json={})
+
+        assert started.status_code == 202
+        status_response = client.get(f"/v1/cases/{gateway.case_id}/analysis")
+        assert status_response.json()["run"]["status"] == "completed"
+        payload = gateway.completed_payloads[0]
+        assert payload["p_case_summary"] == ""
+        assert payload["p_document_summaries"]
+        assert all(
+            citation["target_type"] != "case_summary"
+            for citation in payload["p_citations"]
+        )
+
+    app.dependency_overrides.clear()
+
+
 def test_analysis_status_is_empty_before_first_run(monkeypatch) -> None:
     user = CurrentUser(id=uuid4(), email="lawyer@example.com", access_token="token")
     gateway = AnalysisGateway(user)

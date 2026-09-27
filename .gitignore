@@ -5,6 +5,7 @@
 node_modules/
 dist/
 coverage/
+*.tsbuildinfo
 .venv/
 __pycache__/
 .pytest_cache/

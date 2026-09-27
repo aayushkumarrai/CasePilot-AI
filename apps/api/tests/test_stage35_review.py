@@ -5,6 +5,7 @@ from uuid import uuid4
 import asyncio
 
 from app.core.dependencies import CurrentUser
+from app.modules.review.repository import ReviewRepository
 from app.modules.review.service import get_overview, get_timeline
 
 
@@ -70,3 +71,41 @@ def test_timeline_sorts_recognized_dates_then_unknown() -> None:
     user = CurrentUser(id=uuid4(), email="lawyer@example.com", access_token="token")
     timeline = asyncio.run(get_timeline(gateway, user, uuid4()))
     assert [item.title for item in timeline] == ["Year", "Exact", "Month", "Unknown"]
+
+
+def test_missing_latest_sections_use_newest_persisted_completed_output() -> None:
+    latest_run, older_run = str(uuid4()), str(uuid4())
+    timeline_id, finding_id, task_id, reviewed_field_id, party_field_id = map(lambda _: str(uuid4()), range(5))
+
+    class HistoricalGateway:
+        async def select(self, table, params, *, single=False):
+            if table == "analysis_runs":
+                return [{"id": latest_run}, {"id": older_run}]
+            run_id = params.get("analysis_run_id")
+            if run_id != f"eq.{older_run}":
+                return []
+            rows = {
+                "case_fields": [
+                    {"id": reviewed_field_id, "analysis_run_id": older_run, "field_key": "payment", "status": "confirmed"},
+                    {"id": party_field_id, "analysis_run_id": older_run, "field_key": "buyer", "status": "confirmed"},
+                ],
+                "timeline_events": [{"id": timeline_id, "analysis_run_id": older_run}],
+                "findings": [{"id": finding_id, "analysis_run_id": older_run}],
+                "tasks": [{"id": task_id, "analysis_run_id": older_run}],
+            }
+            return rows.get(table, [])
+
+    repository = ReviewRepository(
+        HistoricalGateway(),
+        CurrentUser(id=uuid4(), email="lawyer@example.com", access_token="token"),
+    )
+    existing_field = {"id": str(uuid4()), "analysis_run_id": latest_run, "field_key": "payment", "status": "pending"}
+    outputs = {table: [] for table in repository._OUTPUT_SELECTS}
+    outputs["case_fields"] = [existing_field]
+
+    filled = asyncio.run(repository.fill_missing_outputs(uuid4(), outputs))
+
+    assert [row["id"] for row in filled["case_fields"]] == [reviewed_field_id, party_field_id]
+    assert filled["timeline_events"][0]["id"] == timeline_id
+    assert filled["findings"][0]["id"] == finding_id
+    assert filled["tasks"][0]["id"] == task_id

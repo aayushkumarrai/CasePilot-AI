@@ -20,6 +20,14 @@ class ReviewRepository:
         "findings": "finding_id",
         "tasks": "task_id",
     }
+    _OUTPUT_SELECTS = {
+        "document_summaries": "id,analysis_run_id,document_id,summary,created_at",
+        "case_fields": "id,analysis_run_id,field_key,label,value,reviewed_value,status,reviewed_at,created_at",
+        "case_parties": "id,analysis_run_id,name,role,reviewed_name,reviewed_role,status,reviewed_at,created_at",
+        "timeline_events": "id,analysis_run_id,event_date_text,date_confidence,title,description,created_at",
+        "findings": "id,analysis_run_id,kind,title,description,created_at",
+        "tasks": "id,analysis_run_id,finding_id,title,description,status,created_at,updated_at",
+    }
 
     def __init__(self, gateway: SupabaseGateway, user: CurrentUser) -> None:
         self.gateway = gateway
@@ -60,17 +68,9 @@ class ReviewRepository:
             raise unavailable() from exc
 
     async def outputs(self, run_id: UUID) -> dict[str, list[dict[str, Any]]]:
-        selects = {
-            "document_summaries": "id,analysis_run_id,document_id,summary,created_at",
-            "case_fields": "id,analysis_run_id,field_key,label,value,reviewed_value,status,reviewed_at,created_at",
-            "case_parties": "id,analysis_run_id,name,role,reviewed_name,reviewed_role,status,reviewed_at,created_at",
-            "timeline_events": "id,analysis_run_id,event_date_text,date_confidence,title,description,created_at",
-            "findings": "id,analysis_run_id,kind,title,description,created_at",
-            "tasks": "id,analysis_run_id,finding_id,title,description,status,created_at,updated_at",
-        }
         try:
             result: dict[str, list[dict[str, Any]]] = {}
-            for table, select in selects.items():
+            for table, select in self._OUTPUT_SELECTS.items():
                 rows = await self.gateway.select(
                     table,
                     {"select": select, "analysis_run_id": f"eq.{run_id}", "order": "created_at.asc"},
@@ -80,21 +80,52 @@ class ReviewRepository:
         except SupabaseError as exc:
             raise unavailable() from exc
 
-    async def latest_available_parties(self, case_id: UUID) -> list[dict[str, Any]]:
-        """Use the newest completed party extraction when a later run omitted parties."""
+    async def fill_missing_outputs(
+        self, case_id: UUID, outputs: dict[str, list[dict[str, Any]]]
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Fill omitted categories from their newest grounded completed-run output.
+
+        Completed runs remain immutable. This keeps a narrow rerun from making
+        previously persisted review sections disappear from the workspace.
+        """
         try:
             runs = await self.gateway.select(
                 "analysis_runs",
                 {"select": "id", "case_id": f"eq.{case_id}", "status": "eq.completed", "order": "completed_at.desc,created_at.desc"},
             )
-            for run in runs or []:
-                parties = await self.gateway.select(
-                    "case_parties",
-                    {"select": "id,analysis_run_id,name,role,reviewed_name,reviewed_role,status,reviewed_at,created_at", "analysis_run_id": f"eq.{run['id']}", "order": "created_at.asc"},
-                )
-                if parties:
-                    return list(parties)
-            return []
+            for table, select in self._OUTPUT_SELECTS.items():
+                merge_review_history = table in {"case_fields", "case_parties"}
+                if outputs[table] and not merge_review_history:
+                    continue
+                candidates = list(outputs[table])
+                for run in runs or []:
+                    rows = await self.gateway.select(
+                        table,
+                        {"select": select, "analysis_run_id": f"eq.{run['id']}", "order": "created_at.asc"},
+                    )
+                    if rows:
+                        candidates.extend(
+                            row for row in rows
+                            if all(str(existing["id"]) != str(row["id"]) for existing in candidates)
+                        )
+                        if not merge_review_history:
+                            break
+                if merge_review_history:
+                    selected: dict[str, dict[str, Any]] = {}
+                    for row in candidates:
+                        if table == "case_fields":
+                            key = str(row.get("field_key") or row.get("label") or row["id"]).strip().casefold()
+                        else:
+                            key = str(row.get("role") or row.get("name") or row["id"]).strip().casefold()
+                        current = selected.get(key)
+                        if current is None or (
+                            current.get("status") == "pending" and row.get("status") in {"confirmed", "rejected"}
+                        ):
+                            selected[key] = row
+                    outputs[table] = list(selected.values())
+                elif candidates:
+                    outputs[table] = candidates
+            return outputs
         except SupabaseError as exc:
             raise unavailable() from exc
 
